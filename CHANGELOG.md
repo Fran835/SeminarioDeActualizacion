@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## [Ejercicio 06]
+
+- Clase ConsoleUI con menú principal y submenús por entidad.
+- Operaciones listar, buscar, crear, modificar y eliminar para las 8 entidades, más ingreso/retiro de stock e histórico de cotizaciones.
+- Validación de ingresos por teclado y manejo de errores de negocio.
+
 ## [Ejercicio 05]
 
 - Módulo preload_data.py con la generación de los CSV de migración.
