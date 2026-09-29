@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## [Ejercicio 02]
+
+- Clase abstracta EntidadBase con la clave de cada entidad.
+- Entidades Libro, Genero, Editorial, Moneda, TipoCotizacion, Precio, Stock y CotizacionDolar con atributos encapsulados.
+- Validaciones en setters (textos vacíos, ISBN, código ISO, valores negativos) aplicadas también desde los constructores.
+
 ## [Ejercicio 01]
 
 - Configuración del repositorio y creación de la rama Sprint_1.
