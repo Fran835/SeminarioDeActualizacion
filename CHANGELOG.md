@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## [Ejercicio 07]
+
+- Archivo main.py con la inyección de dependencias entre capas.
+- Parámetro import_default_data para precargar los datos CSV.
+
 ## [Ejercicio 06]
 
 - Clase ConsoleUI con menú principal y submenús por entidad.
