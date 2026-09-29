@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## [Ejercicio 05]
+
+- Módulo preload_data.py con la generación de los CSV de migración.
+- Archivos CSV con 10 registros por entidad en migrations/csv.
+- Carga de los CSV respetando el orden de dependencias entre entidades.
+
 ## [Ejercicio 04]
 
 - Servicio genérico ServicioCrud con hooks de validación.
