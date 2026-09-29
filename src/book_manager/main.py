@@ -2,6 +2,7 @@ from book_manager.preload_data.preload_data import (
   RUTA_CSV,
   cargar_datos_desde_csv,
   crear_archivos_csv,
+  guardar_datos_en_csv,
 )
 from book_manager.repositories.repositories import (
   RepositorioCotizacionDolar,
@@ -31,9 +32,10 @@ def main(import_default_data: bool = True) -> None:
 
   Construye los repositorios y servicios, inyecta las dependencias,
   opcionalmente precarga los datos de migración y ejecuta la consola.
+  Con datos precargados, cada operación se persiste en los mismos CSV.
 
   Args:
-    import_default_data: Si es True carga los CSV de migrations/csv.
+    import_default_data: Si es True carga y persiste en migrations/csv.
   """
   repo_genero = RepositorioGenero()
   repo_editorial = RepositorioEditorial()
@@ -74,7 +76,7 @@ def main(import_default_data: bool = True) -> None:
     )
     print(f"[INFO] Datos iniciales precargados desde {RUTA_CSV}.")
 
-  ConsoleUI(
+  servicios = (
     svc_genero,
     svc_editorial,
     svc_moneda,
@@ -83,7 +85,12 @@ def main(import_default_data: bool = True) -> None:
     svc_precio,
     svc_stock,
     svc_cotizacion,
-  ).iniciar()
+  )
+  guardar = (
+    (lambda: guardar_datos_en_csv(RUTA_CSV, *servicios))
+    if import_default_data else (lambda: None)
+  )
+  ConsoleUI(*servicios, guardar=guardar).iniciar()
 
 
 if __name__ == "__main__":

@@ -4,6 +4,7 @@
 
 - Archivo main.py con la inyección de dependencias entre capas.
 - Parámetro import_default_data para precargar los datos CSV.
+- Conexión de la consola con la persistencia en migrations/csv.
 
 ## [Ejercicio 06]
 
