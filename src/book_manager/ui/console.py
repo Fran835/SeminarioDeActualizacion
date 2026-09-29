@@ -40,6 +40,7 @@ class ConsoleUI:
     svc_precio: Servicio de precios.
     svc_stock: Servicio de stock.
     svc_cotizacion: Servicio de cotizaciones del dólar.
+    guardar: Función que persiste los datos luego de cada operación.
   """
 
   ANCHO_SEPARADOR = 40
@@ -54,6 +55,7 @@ class ConsoleUI:
     svc_precio: ServicioPrecio,
     svc_stock: ServicioStock,
     svc_cotizacion: ServicioCotizacionDolar,
+    guardar: Callable[[], None] = lambda: None,
   ) -> None:
     self._svc_genero = svc_genero
     self._svc_editorial = svc_editorial
@@ -63,6 +65,7 @@ class ConsoleUI:
     self._svc_precio = svc_precio
     self._svc_stock = svc_stock
     self._svc_cotizacion = svc_cotizacion
+    self._guardar = guardar
 
   def iniciar(self) -> None:
     """Muestra el menú principal hasta que el usuario elige salir."""
@@ -83,7 +86,8 @@ class ConsoleUI:
   ) -> None:
     """Muestra un menú de opciones y ejecuta la acción elegida.
 
-    Los errores de validación se informan sin interrumpir el programa.
+    Los errores de validación se informan sin interrumpir el programa y,
+    si la acción termina bien, los datos se persisten en disco.
 
     Args:
       titulo: Título del menú.
@@ -105,6 +109,7 @@ class ConsoleUI:
         continue
       try:
         acciones[opcion][1]()
+        self._guardar()
       except ValueError as error:
         print(f"Error: {error}")
 
