@@ -18,7 +18,8 @@ del dólar para actualizar sus valores.
 En este sprint se desarrolla una aplicación de consola (CLI) en Python que
 permite administrar, mediante operaciones CRUD, las entidades del dominio:
 Libro, Género, Editorial, Moneda, Tipo de Cotización, Precio, Stock y
-Cotización del Dólar. Los datos iniciales se importan desde archivos CSV.
+Cotización del Dólar. Los datos iniciales se importan desde archivos CSV
+y cada alta, modificación o baja se persiste en esos mismos archivos.
 
 ### Arquitectura
 
