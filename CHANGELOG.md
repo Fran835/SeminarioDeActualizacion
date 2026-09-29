@@ -16,6 +16,7 @@
 - Módulo preload_data.py con la generación de los CSV de migración.
 - Archivos CSV con 10 registros por entidad en migrations/csv.
 - Carga de los CSV respetando el orden de dependencias entre entidades.
+- Persistencia: guardar_datos_en_csv vuelca el estado actual a los CSV.
 
 ## [Ejercicio 04]
 

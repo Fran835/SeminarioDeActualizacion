@@ -135,12 +135,25 @@ def crear_archivos_csv(
   for nombre_archivo, (cabeceras, filas) in DATOS_INICIALES.items():
     ruta_archivo = ruta_csv / nombre_archivo
     if sobrescribir or not ruta_archivo.exists():
-      with open(ruta_archivo, "w", newline="", encoding="utf-8") as archivo:
-        escritor = csv.writer(archivo)
-        escritor.writerow(cabeceras)
-        escritor.writerows(filas)
+      escribir_csv(ruta_archivo, cabeceras, filas)
     archivos.append(ruta_archivo)
   return archivos
+
+
+def escribir_csv(
+  ruta_archivo: Path, cabeceras: list[str], filas: list[list[object]]
+) -> None:
+  """Escribe un archivo CSV con cabecera, reemplazando su contenido.
+
+  Args:
+    ruta_archivo: Ruta del archivo a escribir.
+    cabeceras: Nombres de las columnas.
+    filas: Registros a escribir, uno por fila.
+  """
+  with open(ruta_archivo, "w", newline="", encoding="utf-8") as archivo:
+    escritor = csv.writer(archivo)
+    escritor.writerow(cabeceras)
+    escritor.writerows(filas)
 
 
 def leer_csv(ruta_archivo: Path) -> list[dict[str, str]]:
@@ -255,6 +268,62 @@ def cargar_datos_desde_csv(
         tipo, date.fromisoformat(fila["fecha"]), float(fila["valor"])
       )
     )
+
+
+def guardar_datos_en_csv(
+  ruta_csv: Path,
+  svc_genero: ServicioGenero,
+  svc_editorial: ServicioEditorial,
+  svc_moneda: ServicioMoneda,
+  svc_tipo_cotizacion: ServicioTipoCotizacion,
+  svc_libro: ServicioLibro,
+  svc_precio: ServicioPrecio,
+  svc_stock: ServicioStock,
+  svc_cotizacion: ServicioCotizacionDolar,
+) -> None:
+  """Persiste en los CSV el estado actual de todas las entidades.
+
+  Args:
+    ruta_csv: Carpeta donde se escriben los archivos CSV.
+    svc_genero: Servicio de géneros.
+    svc_editorial: Servicio de editoriales.
+    svc_moneda: Servicio de monedas.
+    svc_tipo_cotizacion: Servicio de tipos de cotización.
+    svc_libro: Servicio de libros.
+    svc_precio: Servicio de precios.
+    svc_stock: Servicio de stock.
+    svc_cotizacion: Servicio de cotizaciones del dólar.
+  """
+  ruta_csv.mkdir(parents=True, exist_ok=True)
+  contenido: dict[str, list[list[object]]] = {
+    "generos.csv": [[g.id, g.nombre] for g in svc_genero.leer_todos()],
+    "editoriales.csv": [
+      [e.id, e.nombre, e.contacto or ""] for e in svc_editorial.leer_todos()
+    ],
+    "monedas.csv": [
+      [m.id, m.codigo, m.simbolo] for m in svc_moneda.leer_todos()
+    ],
+    "tipos_cotizacion.csv": [
+      [t.id, t.nombre] for t in svc_tipo_cotizacion.leer_todos()
+    ],
+    "libros.csv": [
+      [lib.isbn, lib.titulo, lib.autor, lib.editorial.id, lib.genero.id]
+      for lib in svc_libro.leer_todos()
+    ],
+    "precios.csv": [
+      [p.libro_isbn, p.valor, p.moneda.id] for p in svc_precio.leer_todos()
+    ],
+    "stocks.csv": [
+      [s.libro_isbn, s.cantidad] for s in svc_stock.leer_todos()
+    ],
+    "cotizaciones_dolar.csv": [
+      [c.tipo_cotizacion.id, c.fecha.isoformat(), c.valor]
+      for c in svc_cotizacion.leer_todos()
+    ],
+  }
+  for nombre_archivo, filas in contenido.items():
+    cabeceras, _ = DATOS_INICIALES[nombre_archivo]
+    escribir_csv(ruta_csv / nombre_archivo, cabeceras, filas)
 
 
 if __name__ == "__main__":
