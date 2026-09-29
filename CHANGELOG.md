@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## [Ejercicio 03]
+
+- Interfaces IRepositorio, IRepositorioStock e IRepositorioCotizacionDolar según el código base.
+- Repositorio genérico en memoria RepositorioMemoria indexado por clave.
+- Repositorios concretos con CRUD completo para las 8 entidades.
+
 ## [Ejercicio 02]
 
 - Clase abstracta EntidadBase con la clave de cada entidad.
