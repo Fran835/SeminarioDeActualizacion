@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## [Ejercicio 04]
+
+- Servicio genérico ServicioCrud con hooks de validación.
+- Validación de relaciones: editorial y género del libro, libro y moneda del precio, libro del stock y tipo de la cotización.
+- Integridad referencial al eliminar entidades en uso.
+- Operaciones de ingreso y retiro de stock.
+
 ## [Ejercicio 03]
 
 - Interfaces IRepositorio, IRepositorioStock e IRepositorioCotizacionDolar según el código base.
