@@ -1,31 +1,25 @@
 # CHANGELOG
 
-[Ejercicio 4]
-- Se crean los modelos ORM en models/models.py con la Base declarativa.
-- Tablas: generos, editoriales, monedas, tipos_cotizacion, libros, precios, stocks y cotizaciones_dolar.
-- Relaciones: libro N:1 editorial/género, precio N:1 libro/moneda, stock 1:1 libro, cotización N:1 tipo.
-- Restricciones de unicidad (isbn, precio por moneda, cotización por tipo y fecha) y CHECK de valores no negativos.
-- Se crean las tablas en la base con ConexionDB.crear_tablas().
+## Sprint 2
 
-[Ejercicio 3]
-- Se crea el context manager GestorTransaccion en database/connection.py.
-- Commit automático al finalizar el bloque y rollback ante excepciones.
-- ConexionDB expone crear_sesion() y transaccion(); se elimina obtener_sesion().
-- Se agrega commit_ejercicio() para evitar commits duplicados al re-ejecutar.
+[Ejercicio 6]
+- Se reemplazan los repositorios en memoria por repositorios con SQLAlchemy.
+- RepositorioBase genérico con CRUD transaccional y conversión entidad/modelo.
+- La clave de búsqueda se toma de la propiedad clave de EntidadBase.
+- Precio: un precio por libro identificado por ISBN; al modificarlo puede cambiar la moneda.
+- Los errores de integridad de la base se traducen a ValueError.
+- main.py crea las tablas, migra opcionalmente los CSV y arma los servicios con sus dependencias.
 
-[Ejercicio 2]
-- Se crea la clase ConexionDB en database/connection.py con SQLAlchemy.
-- La URL de conexión se lee de la variable DATABASE_URL (.env / secret de Colab).
-- Se implementa Singleton, sesiones transaccionales y prueba de conexión.
-- Se habilitan las claves foráneas en SQLite.
-- Se agregan SQLAlchemy, python-dotenv y psycopg2-binary a requirements.txt.
+[Ejercicio 5]
+- Se crea migrations/migrations.py con la función migrar_datos().
+- Lectura de los 8 CSV del Sprint 1 respetando el orden de dependencias.
+- Mapeo de columnas CSV -> tabla: libro_isbn se resuelve a libro_id con una subconsulta por ISBN.
+- Los ids que no vienen en el CSV (libros, precios, stocks, cotizaciones) los genera la base.
+- Validación de encabezados: si falta una columna la migración se detiene con un mensaje claro.
+- Generación de un archivo .sql de INSERTs por tabla en migrations/sql.
+- Ejecución en una única transacción (todo o nada), re-ejecutable y con escape de comillas.
 
-[Ejercicio 1]
-- Sprint 2: se crea la rama Sprint_2 a partir de la rama Sprint_1.
-- Se configura Git en Colab usando el secret GITHUB_TOKEN.
-- Se crea la estructura de directorios del proyecto (database, entities, models, preload_data, repositories, services, migrations, ui).
-- Se agrega .gitignore para excluir .env y archivos generados.
-- Se actualiza el README.md con el objetivo y contexto del Sprint 2.
+## Sprint 1
 
 ## [Ejercicio 07]
 
