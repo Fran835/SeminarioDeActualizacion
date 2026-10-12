@@ -1,5 +1,12 @@
 # CHANGELOG
 
+[Ejercicio 1]
+- Sprint 2: se crea la rama Sprint_2 a partir de la rama Sprint_1.
+- Se configura Git en Colab usando el secret GITHUB_TOKEN.
+- Se crea la estructura de directorios del proyecto (database, entities, models, preload_data, repositories, services, migrations, ui).
+- Se agrega .gitignore para excluir .env y archivos generados.
+- Se actualiza el README.md con el objetivo y contexto del Sprint 2.
+
 ## [Ejercicio 07]
 
 - Archivo main.py con la inyección de dependencias entre capas.

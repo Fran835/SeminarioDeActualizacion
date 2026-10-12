@@ -1,38 +1,14 @@
 # Book Manager
 
-## Sprint 1
+## Sprint actual: Sprint 2
 
-### Objetivo
+## Objetivo
+Aplicar los conocimientos de programación orientada a objetos y de persistencia de datos,
+consolidando el manejo de bases de datos relacionales, la normalización, la conexión segura
+y la carga inicial de datos.
 
-Aplicar los conocimientos de programación orientada a objetos y de
-almacenamiento de datos en archivos para su persistencia, construyendo la
-base de un sistema de gestión de inventario de libros.
-
-### Introducción y contexto
-
-Una librería con venta al público necesita modernizar su sistema de gestión
-de inventario. Debido a la fluctuación en los costos de importación, el
-sistema debe gestionar precios en diferentes monedas y seguir la cotización
-del dólar para actualizar sus valores.
-
-En este sprint se desarrolla una aplicación de consola (CLI) en Python que
-permite administrar, mediante operaciones CRUD, las entidades del dominio:
-Libro, Género, Editorial, Moneda, Tipo de Cotización, Precio, Stock y
-Cotización del Dólar. Los datos iniciales se importan desde archivos CSV
-y cada alta, modificación o baja se persiste en esos mismos archivos.
-
-### Arquitectura
-
-- `entities`: clases del dominio con encapsulamiento y validaciones.
-- `repositories`: persistencia de las entidades (CRUD).
-- `services`: reglas de negocio e integridad referencial.
-- `preload_data`: generación e importación de los CSV de `migrations/csv`.
-- `ui`: interfaz de consola.
-- `main.py`: punto de entrada e inyección de dependencias.
-
-### Ejecución
-
-```bash
-cd src
-python -m book_manager.main
-```
+## Introducción y contexto
+En este sprint la aplicación pasa de persistir en archivos a persistir en una base de datos
+relacional mediante el ORM SQLAlchemy. Se migran a tablas relacionales todos los datos
+cargados en los archivos del Sprint 1 y se incorporan consultas a APIs externas.
+El desarrollo parte del último push de la rama `Sprint_1` y se trabaja sobre la rama `Sprint_2`.
