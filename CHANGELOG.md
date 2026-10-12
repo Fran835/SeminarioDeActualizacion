@@ -1,5 +1,12 @@
 # CHANGELOG
 
+[Ejercicio 4]
+- Se crean los modelos ORM en models/models.py con la Base declarativa.
+- Tablas: generos, editoriales, monedas, tipos_cotizacion, libros, precios, stocks y cotizaciones_dolar.
+- Relaciones: libro N:1 editorial/género, precio N:1 libro/moneda, stock 1:1 libro, cotización N:1 tipo.
+- Restricciones de unicidad (isbn, precio por moneda, cotización por tipo y fecha) y CHECK de valores no negativos.
+- Se crean las tablas en la base con ConexionDB.crear_tablas().
+
 [Ejercicio 3]
 - Se crea el context manager GestorTransaccion en database/connection.py.
 - Commit automático al finalizar el bloque y rollback ante excepciones.
