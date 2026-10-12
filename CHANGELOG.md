@@ -1,5 +1,11 @@
 # CHANGELOG
 
+[Ejercicio 3]
+- Se crea el context manager GestorTransaccion en database/connection.py.
+- Commit automático al finalizar el bloque y rollback ante excepciones.
+- ConexionDB expone crear_sesion() y transaccion(); se elimina obtener_sesion().
+- Se agrega commit_ejercicio() para evitar commits duplicados al re-ejecutar.
+
 [Ejercicio 2]
 - Se crea la clase ConexionDB en database/connection.py con SQLAlchemy.
 - La URL de conexión se lee de la variable DATABASE_URL (.env / secret de Colab).

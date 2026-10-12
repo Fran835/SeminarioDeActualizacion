@@ -1,8 +1,7 @@
-"""Manejo de la conexión a la base de datos relacional con SQLAlchemy."""
+"""Manejo de la conexión y las transacciones con SQLAlchemy."""
 
 import os
-from collections.abc import Iterator
-from contextlib import contextmanager
+from types import TracebackType
 from typing import Any
 
 from sqlalchemy import Engine, create_engine, event, text
@@ -68,18 +67,13 @@ class ConexionDB:
         """URL de conexión con la contraseña oculta."""
         return self.__engine.url.render_as_string(hide_password=True)
 
-    @contextmanager
-    def obtener_sesion(self) -> Iterator[Session]:
-        """Sesión transaccional: commit al terminar, rollback ante error."""
-        sesion = self.__fabrica_sesiones()
-        try:
-            yield sesion
-            sesion.commit()
-        except Exception:
-            sesion.rollback()
-            raise
-        finally:
-            sesion.close()
+    def crear_sesion(self) -> Session:
+        """Crea una sesión nueva vinculada al engine."""
+        return self.__fabrica_sesiones()
+
+    def transaccion(self) -> "GestorTransaccion":
+        """Devuelve un context manager que maneja una transacción."""
+        return GestorTransaccion(self)
 
     def probar_conexion(self) -> bool:
         """Ejecuta una consulta mínima para verificar que la base responde."""
@@ -107,3 +101,58 @@ class ConexionDB:
     def __repr__(self) -> str:
         """Representación legible sin exponer credenciales."""
         return f"ConexionDB(motor={self.motor!r}, url={self.url_segura!r})"
+
+
+class GestorTransaccion:
+    """Context manager que delimita una transacción de base de datos.
+
+    Al entrar abre una sesión; al salir hace commit si el bloque terminó
+    bien o rollback si se produjo una excepción, y siempre cierra la
+    sesión. La excepción no se suprime: se propaga a quien la invocó.
+
+    Uso:
+        with GestorTransaccion(ConexionDB()) as sesion:
+            sesion.add(objeto)
+    """
+
+    def __init__(self, conexion: ConexionDB) -> None:
+        """Guarda la conexión desde la que se crearán las sesiones."""
+        self.__conexion: ConexionDB = conexion
+        self.__sesion: Session | None = None
+
+    @property
+    def activa(self) -> bool:
+        """Indica si hay una transacción en curso."""
+        return self.__sesion is not None
+
+    def __enter__(self) -> Session:
+        """Abre la sesión y la entrega al bloque with."""
+        self.__sesion = self.__conexion.crear_sesion()
+        return self.__sesion
+
+    def __exit__(
+        self,
+        tipo_error: type[BaseException] | None,
+        error: BaseException | None,
+        traza: TracebackType | None,
+    ) -> bool:
+        """Confirma o revierte la transacción y cierra la sesión."""
+        if self.__sesion is None:
+            return False
+        try:
+            if tipo_error is None:
+                self.__confirmar()
+            else:
+                self.__sesion.rollback()
+        finally:
+            self.__sesion.close()
+            self.__sesion = None
+        return False
+
+    def __confirmar(self) -> None:
+        """Hace commit; si el commit falla, revierte y relanza el error."""
+        try:
+            self.__sesion.commit()
+        except Exception:
+            self.__sesion.rollback()
+            raise
