@@ -1,5 +1,12 @@
 # CHANGELOG
 
+[Ejercicio 2]
+- Se crea la clase ConexionDB en database/connection.py con SQLAlchemy.
+- La URL de conexión se lee de la variable DATABASE_URL (.env / secret de Colab).
+- Se implementa Singleton, sesiones transaccionales y prueba de conexión.
+- Se habilitan las claves foráneas en SQLite.
+- Se agregan SQLAlchemy, python-dotenv y psycopg2-binary a requirements.txt.
+
 [Ejercicio 1]
 - Sprint 2: se crea la rama Sprint_2 a partir de la rama Sprint_1.
 - Se configura Git en Colab usando el secret GITHUB_TOKEN.
