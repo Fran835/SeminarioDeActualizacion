@@ -1,97 +1,79 @@
-from book_manager.preload_data.preload_data import (
-  RUTA_CSV,
-  cargar_datos_desde_csv,
-  crear_archivos_csv,
-  guardar_datos_en_csv,
-)
+"""Punto de entrada de Book Manager con persistencia en base de datos."""
+
+from pathlib import Path
+
+from book_manager.database.connection import ConexionDB
+from book_manager.migrations.migrations import migrar_datos
+from book_manager.models.models import Base
 from book_manager.repositories.repositories import (
-  RepositorioCotizacionDolar,
-  RepositorioEditorial,
-  RepositorioGenero,
-  RepositorioLibro,
-  RepositorioMoneda,
-  RepositorioPrecio,
-  RepositorioStock,
-  RepositorioTipoCotizacion,
+    RepositorioCotizacionDolar,
+    RepositorioEditorial,
+    RepositorioGenero,
+    RepositorioLibro,
+    RepositorioMoneda,
+    RepositorioPrecio,
+    RepositorioStock,
+    RepositorioTipoCotizacion,
 )
 from book_manager.services.services import (
-  ServicioCotizacionDolar,
-  ServicioEditorial,
-  ServicioGenero,
-  ServicioLibro,
-  ServicioMoneda,
-  ServicioPrecio,
-  ServicioStock,
-  ServicioTipoCotizacion,
+    ServicioCotizacionDolar,
+    ServicioEditorial,
+    ServicioGenero,
+    ServicioLibro,
+    ServicioMoneda,
+    ServicioPrecio,
+    ServicioStock,
+    ServicioTipoCotizacion,
 )
 from book_manager.ui.console import ConsoleUI
 
+RUTA_MIGRACIONES: Path = Path(__file__).parent / "migrations"
 
-def main(import_default_data: bool = True) -> None:
-  """Punto de entrada de Book Manager.
 
-  Construye los repositorios y servicios, inyecta las dependencias,
-  opcionalmente precarga los datos de migración y ejecuta la consola.
-  Con datos precargados, cada operación se persiste en los mismos CSV.
+def inicializar_base(conexion: ConexionDB, importar_datos: bool) -> None:
+    """Crea las tablas y, si se solicita, migra los datos de los CSV."""
+    conexion.crear_tablas(Base)
+    if importar_datos:
+        migrar_datos(
+            str(RUTA_MIGRACIONES / "csv"),
+            str(RUTA_MIGRACIONES / "sql"),
+            conexion,
+        )
 
-  Args:
-    import_default_data: Si es True carga y persiste en migrations/csv.
-  """
-  repo_genero = RepositorioGenero()
-  repo_editorial = RepositorioEditorial()
-  repo_moneda = RepositorioMoneda()
-  repo_tipo_cotizacion = RepositorioTipoCotizacion()
-  repo_libro = RepositorioLibro()
-  repo_precio = RepositorioPrecio()
-  repo_stock = RepositorioStock()
-  repo_cotizacion = RepositorioCotizacionDolar()
 
-  svc_genero = ServicioGenero(repo_genero, repo_libro)
-  svc_editorial = ServicioEditorial(repo_editorial, repo_libro)
-  svc_moneda = ServicioMoneda(repo_moneda, repo_precio)
-  svc_tipo_cotizacion = ServicioTipoCotizacion(
-    repo_tipo_cotizacion, repo_cotizacion
-  )
-  svc_libro = ServicioLibro(
-    repo_libro, repo_editorial, repo_genero, repo_precio, repo_stock
-  )
-  svc_precio = ServicioPrecio(repo_precio, repo_libro, repo_moneda)
-  svc_stock = ServicioStock(repo_stock, repo_libro)
-  svc_cotizacion = ServicioCotizacionDolar(
-    repo_cotizacion, repo_tipo_cotizacion
-  )
+def main(import_default_data: bool = False) -> None:
+    """Inicializa la base, arma las capas del sistema y lanza la consola.
 
-  if import_default_data:
-    crear_archivos_csv(RUTA_CSV)
-    cargar_datos_desde_csv(
-      RUTA_CSV,
-      svc_genero,
-      svc_editorial,
-      svc_moneda,
-      svc_tipo_cotizacion,
-      svc_libro,
-      svc_precio,
-      svc_stock,
-      svc_cotizacion,
+    Args:
+        import_default_data (bool): Si es True, vuelve a cargar los datos
+            iniciales desde los CSV (reemplaza los datos existentes).
+    """
+    conexion = ConexionDB()
+    inicializar_base(conexion, import_default_data)
+
+    repo_genero = RepositorioGenero(conexion)
+    repo_editorial = RepositorioEditorial(conexion)
+    repo_moneda = RepositorioMoneda(conexion)
+    repo_tipo_cot = RepositorioTipoCotizacion(conexion)
+    repo_libro = RepositorioLibro(conexion)
+    repo_precio = RepositorioPrecio(conexion)
+    repo_stock = RepositorioStock(conexion)
+    repo_cotizacion = RepositorioCotizacionDolar(conexion)
+
+    ui = ConsoleUI(
+        ServicioGenero(repo_genero, repo_libro),
+        ServicioEditorial(repo_editorial, repo_libro),
+        ServicioMoneda(repo_moneda, repo_precio),
+        ServicioTipoCotizacion(repo_tipo_cot, repo_cotizacion),
+        ServicioLibro(
+            repo_libro, repo_editorial, repo_genero, repo_precio, repo_stock
+        ),
+        ServicioPrecio(repo_precio, repo_libro, repo_moneda),
+        ServicioStock(repo_stock, repo_libro),
+        ServicioCotizacionDolar(repo_cotizacion, repo_tipo_cot),
     )
-    print(f"[INFO] Datos iniciales precargados desde {RUTA_CSV}.")
-
-  servicios = (
-    svc_genero,
-    svc_editorial,
-    svc_moneda,
-    svc_tipo_cotizacion,
-    svc_libro,
-    svc_precio,
-    svc_stock,
-    svc_cotizacion,
-  )
-  guardar = (
-    (lambda: guardar_datos_en_csv(RUTA_CSV, *servicios))
-    if import_default_data else (lambda: None)
-  )
-  ConsoleUI(*servicios, guardar=guardar).iniciar()
+    ui.iniciar()
 
 
 if __name__ == "__main__":
-  main()
+    main(import_default_data=True)
