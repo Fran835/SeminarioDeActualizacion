@@ -2,6 +2,15 @@
 
 ## Sprint 2
 
+[Ejercicio 7]
+- Se agrega API_URL=https://dolarapi.com/v1/dolares al .env y se carga con python-dotenv.
+- Se versiona .env.example con las variables necesarias; el .env real sigue fuera del repositorio.
+- Nuevo método ServicioCotizacionDolar.obtener_cotizaciones(): descarga, valida y registra cotizaciones.
+- Los tipos de la API se asocian a los existentes (Bolsa -> MEP, Contado con liquidación -> CCL) o se crean.
+- Se registra el valor de venta en la fecha de Argentina; si ya existe para tipo y fecha, se actualiza.
+- Errores de red, HTTP o formato se informan como ValueError.
+- Se agrega requests a requirements.txt.
+
 [Ejercicio 6]
 - Se reemplazan los repositorios en memoria por repositorios con SQLAlchemy.
 - RepositorioBase genérico con CRUD transaccional y conversión entidad/modelo.
@@ -18,6 +27,26 @@
 - Validación de encabezados: si falta una columna la migración se detiene con un mensaje claro.
 - Generación de un archivo .sql de INSERTs por tabla en migrations/sql.
 - Ejecución en una única transacción (todo o nada), re-ejecutable y con escape de comillas.
+
+[Ejercicio 4]
+- Se crean los modelos ORM en models/models.py con la Base declarativa.
+- Tablas: generos, editoriales, monedas, tipos_cotizacion, libros, precios, stocks y cotizaciones_dolar.
+- Relaciones: libro N:1 editorial/género, precio N:1 libro/moneda, stock 1:1 libro, cotización N:1 tipo.
+- Restricciones de unicidad (isbn, precio por moneda, cotización por tipo y fecha) y CHECK de valores no negativos.
+- Se crean las tablas en la base con ConexionDB.crear_tablas().
+
+[Ejercicio 3]
+- Se crea el context manager GestorTransaccion en database/connection.py.
+- Commit automático al finalizar el bloque y rollback ante excepciones.
+- ConexionDB expone crear_sesion() y transaccion(); se elimina obtener_sesion().
+- Se agrega commit_ejercicio() para evitar commits duplicados al re-ejecutar.
+
+[Ejercicio 2]
+- Se crea la clase ConexionDB en database/connection.py con SQLAlchemy.
+- La URL de conexión se lee de la variable DATABASE_URL (.env / secret de Colab).
+- Se implementa Singleton, sesiones transaccionales y prueba de conexión.
+- Se habilitan las claves foráneas en SQLite.
+- Se agregan SQLAlchemy, python-dotenv y psycopg2-binary a requirements.txt.
 
 ## Sprint 1
 

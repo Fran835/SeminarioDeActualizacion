@@ -1,5 +1,10 @@
-from datetime import date
-from typing import Generic, Hashable, Optional, TypeVar
+import os
+import unicodedata
+from datetime import date, datetime
+from typing import Any, Generic, Hashable, Optional, TypeVar
+from zoneinfo import ZoneInfo
+
+import requests
 
 from book_manager.entities.entities import (
   CotizacionDolar,
@@ -19,6 +24,28 @@ from book_manager.repositories.repositories import (
 )
 
 T = TypeVar("T", bound=EntidadBase)
+
+ZONA_HORARIA = ZoneInfo("America/Argentina/Buenos_Aires")
+CAMPOS_API = ("casa", "nombre", "venta", "fechaActualizacion")
+# Nombres de la API que en el sistema se registran con otro nombre de tipo.
+ALIAS_TIPOS: dict[str, str] = {
+  "bolsa": "mep",
+  "contadoconliqui": "ccl",
+  "contado con liquidacion": "ccl",
+}
+
+
+def normalizar(texto: str) -> str:
+  """Pasa un texto a minúsculas y sin acentos para poder compararlo.
+
+  Args:
+    texto: Texto a normalizar.
+
+  Returns:
+    str: Texto en minúsculas, sin tildes ni espacios extremos.
+  """
+  descompuesto = unicodedata.normalize("NFKD", texto.strip().lower())
+  return "".join(c for c in descompuesto if not unicodedata.combining(c))
 
 
 class ServicioCrud(Generic[T]):
@@ -401,15 +428,122 @@ class ServicioCotizacionDolar:
   Args:
     repositorio: Repositorio de cotizaciones.
     tipos: Repositorio de tipos de cotización.
+    api_url: URL de la API de cotizaciones; por defecto, API_URL del .env.
+    timeout: Segundos máximos de espera de la respuesta de la API.
   """
 
   def __init__(
     self,
     repositorio: IRepositorioCotizacionDolar,
     tipos: IRepositorio[TipoCotizacion],
+    api_url: Optional[str] = None,
+    timeout: float = 10.0,
   ) -> None:
     self._repositorio = repositorio
     self._tipos = tipos
+    self._api_url = api_url
+    self._timeout = timeout
+
+  @property
+  def api_url(self) -> str:
+    """str: URL de la API; si no se indicó, se toma de API_URL (.env).
+
+    Raises:
+      ValueError: Si la URL no está configurada.
+    """
+    url = self._api_url or os.getenv("API_URL")
+    if not url:
+      raise ValueError("No está configurada la variable API_URL en el .env.")
+    return url
+
+  def obtener_cotizaciones(self) -> list[CotizacionDolar]:
+    """Busca, descarga y registra en la base las cotizaciones del dólar.
+
+    Por cada cotización de la API se busca su tipo (creándolo si no
+    existe) y se registra el valor de venta para la fecha de
+    actualización. Si ya había una cotización de ese tipo y fecha, se
+    actualiza su valor; si no, se crea.
+
+    Returns:
+      list[CotizacionDolar]: Cotizaciones registradas o actualizadas.
+
+    Raises:
+      ValueError: Si la API no responde o devuelve datos inválidos.
+    """
+    registradas: list[CotizacionDolar] = []
+    for dato in self._descargar():
+      cotizacion = CotizacionDolar(
+        self._obtener_o_crear_tipo(dato["casa"], dato["nombre"]),
+        self._fecha_local(dato["fechaActualizacion"]),
+        float(dato["venta"]),
+      )
+      existente = self.leer_por_tipo_y_fecha(
+        cotizacion.tipo_cotizacion.id, cotizacion.fecha
+      )
+      if existente is None:
+        registradas.append(self.crear(cotizacion))
+      else:
+        registradas.append(self.actualizar(cotizacion))
+    return registradas
+
+  def _descargar(self) -> list[dict[str, Any]]:
+    """Descarga las cotizaciones de la API y valida su estructura.
+
+    Returns:
+      list[dict[str, Any]]: Cotizaciones tal como las devuelve la API.
+
+    Raises:
+      ValueError: Si la petición falla o la respuesta no es válida.
+    """
+    url = self.api_url
+    try:
+      respuesta = requests.get(url, timeout=self._timeout)
+      respuesta.raise_for_status()
+      datos = respuesta.json()
+    except requests.RequestException as error:
+      raise ValueError(f"No se pudo consultar la API: {error}") from error
+    except ValueError as error:
+      raise ValueError("La API no devolvió un JSON válido.") from error
+
+    if not isinstance(datos, list):
+      raise ValueError("La API devolvió un formato inesperado.")
+    for dato in datos:
+      faltantes = [c for c in CAMPOS_API if c not in dato]
+      if faltantes:
+        raise ValueError(f"La API no informó los campos {faltantes}.")
+    return datos
+
+  def _obtener_o_crear_tipo(self, casa: str, nombre: str) -> TipoCotizacion:
+    """Busca el tipo de cotización de la API o lo registra si no existe.
+
+    Args:
+      casa: Identificador de la cotización en la API (ej. "blue").
+      nombre: Nombre de la cotización en la API (ej. "Blue").
+
+    Returns:
+      TipoCotizacion: El tipo existente o el recién creado.
+    """
+    buscados = {normalizar(casa), normalizar(nombre)}
+    buscados |= {ALIAS_TIPOS[b] for b in buscados if b in ALIAS_TIPOS}
+    tipos = self._tipos.leer_todos()
+    for tipo in tipos:
+      if normalizar(tipo.nombre) in buscados:
+        return tipo
+    nuevo_id = max((tipo.id for tipo in tipos), default=0) + 1
+    return self._tipos.crear(TipoCotizacion(nuevo_id, nombre))
+
+  @staticmethod
+  def _fecha_local(fecha_iso: str) -> date:
+    """Convierte la fecha de la API (UTC) a la fecha de Argentina.
+
+    Args:
+      fecha_iso: Fecha y hora en formato ISO 8601 (ej. 2026-10-12T20:56Z).
+
+    Returns:
+      date: Fecha correspondiente en la zona horaria de Buenos Aires.
+    """
+    instante = datetime.fromisoformat(fecha_iso.replace("Z", "+00:00"))
+    return instante.astimezone(ZONA_HORARIA).date()
 
   def crear(self, cotizacion: CotizacionDolar) -> CotizacionDolar:
     """Registra una cotización nueva.
