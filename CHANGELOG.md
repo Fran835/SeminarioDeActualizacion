@@ -2,6 +2,14 @@
 
 ## Sprint 2
 
+[Ejercicio 8]
+- Nuevas opciones del menú principal: obtener cotizaciones por API, lista de precios bimonetaria y exportar precios a CSV.
+- Se crea ServicioListaPrecios en services.py con la lógica de conversión y exportación.
+- La conversión usa el peso como puente (ARS = 1, USD = cotización vigente del tipo elegido).
+- La lista bimonetaria muestra cada libro en pesos y en la moneda elegida según el tipo de cotización.
+- La exportación genera exports/lista_precios.csv con el precio en pesos y en USD por cada tipo de cotización.
+- main.py carga el .env con load_dotenv y crea el nuevo servicio.
+
 [Ejercicio 7]
 - Se agrega API_URL=https://dolarapi.com/v1/dolares al .env y se carga con python-dotenv.
 - Se versiona .env.example con las variables necesarias; el .env real sigue fuera del repositorio.

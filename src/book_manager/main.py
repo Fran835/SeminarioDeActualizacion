@@ -2,6 +2,8 @@
 
 from pathlib import Path
 
+from dotenv import load_dotenv
+
 from book_manager.database.connection import ConexionDB
 from book_manager.migrations.migrations import migrar_datos
 from book_manager.models.models import Base
@@ -20,6 +22,7 @@ from book_manager.services.services import (
     ServicioEditorial,
     ServicioGenero,
     ServicioLibro,
+    ServicioListaPrecios,
     ServicioMoneda,
     ServicioPrecio,
     ServicioStock,
@@ -27,7 +30,10 @@ from book_manager.services.services import (
 )
 from book_manager.ui.console import ConsoleUI
 
-RUTA_MIGRACIONES: Path = Path(__file__).parent / "migrations"
+RUTA_PAQUETE: Path = Path(__file__).resolve().parent
+RUTA_MIGRACIONES: Path = RUTA_PAQUETE / "migrations"
+RUTA_EXPORTACIONES: Path = RUTA_PAQUETE / "exports"
+RUTA_ENV: Path = RUTA_PAQUETE.parents[1] / ".env"
 
 
 def inicializar_base(conexion: ConexionDB, importar_datos: bool) -> None:
@@ -48,6 +54,7 @@ def main(import_default_data: bool = False) -> None:
         import_default_data (bool): Si es True, vuelve a cargar los datos
             iniciales desde los CSV (reemplaza los datos existentes).
     """
+    load_dotenv(RUTA_ENV)
     conexion = ConexionDB()
     inicializar_base(conexion, import_default_data)
 
@@ -71,6 +78,13 @@ def main(import_default_data: bool = False) -> None:
         ServicioPrecio(repo_precio, repo_libro, repo_moneda),
         ServicioStock(repo_stock, repo_libro),
         ServicioCotizacionDolar(repo_cotizacion, repo_tipo_cot),
+        ServicioListaPrecios(
+            repo_precio,
+            repo_libro,
+            repo_cotizacion,
+            repo_tipo_cot,
+            RUTA_EXPORTACIONES,
+        ),
     )
     ui.iniciar()
 

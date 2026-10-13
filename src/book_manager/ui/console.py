@@ -13,11 +13,13 @@ from book_manager.entities.entities import (
   TipoCotizacion,
 )
 from book_manager.services.services import (
+  FilaPrecio,
   ServicioCotizacionDolar,
   ServicioCrud,
   ServicioEditorial,
   ServicioGenero,
   ServicioLibro,
+  ServicioListaPrecios,
   ServicioMoneda,
   ServicioPrecio,
   ServicioStock,
@@ -40,6 +42,7 @@ class ConsoleUI:
     svc_precio: Servicio de precios.
     svc_stock: Servicio de stock.
     svc_cotizacion: Servicio de cotizaciones del dólar.
+    svc_lista_precios: Servicio de conversión y exportación de precios.
     guardar: Función que persiste los datos luego de cada operación.
   """
 
@@ -55,6 +58,7 @@ class ConsoleUI:
     svc_precio: ServicioPrecio,
     svc_stock: ServicioStock,
     svc_cotizacion: ServicioCotizacionDolar,
+    svc_lista_precios: ServicioListaPrecios,
     guardar: Callable[[], None] = lambda: None,
   ) -> None:
     self._svc_genero = svc_genero
@@ -65,6 +69,7 @@ class ConsoleUI:
     self._svc_precio = svc_precio
     self._svc_stock = svc_stock
     self._svc_cotizacion = svc_cotizacion
+    self._svc_lista_precios = svc_lista_precios
     self._guardar = guardar
 
   def iniciar(self) -> None:
@@ -78,6 +83,9 @@ class ConsoleUI:
       "6": ("Gestionar Precios", self._menu_precios),
       "7": ("Gestionar Stock", self._menu_stock),
       "8": ("Gestionar Cotizaciones del Dólar", self._menu_cotizaciones),
+      "9": ("Obtener cotizaciones por API", self._obtener_cotizaciones_api),
+      "10": ("Ver lista de precios bimonetaria", self._lista_bimonetaria),
+      "11": ("Exportar precios a CSV", self._exportar_precios),
     }, texto_salida="Salir")
     print("Saliendo del sistema...")
 
@@ -503,3 +511,49 @@ class ConsoleUI:
       self._pedir_decimal("Valor en ARS", actual.valor),
     )
     print(f"Modificada: {self._svc_cotizacion.actualizar(cotizacion)}")
+
+  def _obtener_cotizaciones_api(self) -> None:
+    """Descarga las cotizaciones de la API y las registra en la base."""
+    print("Consultando la API de cotizaciones...")
+    self._mostrar(self._svc_cotizacion.obtener_cotizaciones())
+
+  def _lista_bimonetaria(self) -> None:
+    """Muestra los precios de los libros en pesos y en otra moneda."""
+    print("Tipos de cotización disponibles:")
+    self._mostrar(self._svc_tipo_cotizacion.leer_todos())
+    tipo_id = self._pedir_entero("ID Tipo de cotización", 1)
+    moneda = self._obtener(
+      self._svc_moneda, self._pedir_entero("ID Moneda a mostrar", 2)
+    )
+    filas = self._svc_lista_precios.lista_bimonetaria(moneda.codigo, tipo_id)
+    cotizacion = self._svc_lista_precios.cotizacion_vigente(tipo_id)
+    print(
+      f"\nCotización {cotizacion.tipo_cotizacion.nombre} del "
+      f"{cotizacion.fecha.isoformat()}: $ {cotizacion.valor:,.2f}"
+    )
+    self._imprimir_lista(filas, moneda)
+
+  @staticmethod
+  def _imprimir_lista(filas: list[FilaPrecio], moneda: Moneda) -> None:
+    """Imprime la lista bimonetaria como tabla.
+
+    Args:
+      filas: Filas de la lista de precios.
+      moneda: Moneda elegida para la segunda columna.
+    """
+    def formato(valor: Optional[float]) -> str:
+      return "-" if valor is None else f"{valor:,.2f}"
+
+    print(f"{'ISBN':<14} {'Título':<32} {'ARS':>14} {moneda.codigo:>12}")
+    print("-" * 75)
+    for fila in filas:
+      print(
+        f"{fila.isbn:<14} {fila.titulo[:32]:<32} "
+        f"{formato(fila.valor_pesos):>14} {formato(fila.valor_moneda):>12}"
+      )
+    print(f"Total: {len(filas)} libro(s).")
+
+  def _exportar_precios(self) -> None:
+    """Exporta la lista de precios a un archivo CSV."""
+    ruta = self._svc_lista_precios.exportar_csv()
+    print(f"Precios exportados en: {ruta}")

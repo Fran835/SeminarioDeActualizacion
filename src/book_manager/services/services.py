@@ -1,6 +1,9 @@
+import csv
 import os
 import unicodedata
+from dataclasses import dataclass
 from datetime import date, datetime
+from pathlib import Path
 from typing import Any, Generic, Hashable, Optional, TypeVar
 from zoneinfo import ZoneInfo
 
@@ -25,6 +28,8 @@ from book_manager.repositories.repositories import (
 
 T = TypeVar("T", bound=EntidadBase)
 
+MONEDA_LOCAL = "ARS"
+MONEDA_DOLAR = "USD"
 ZONA_HORARIA = ZoneInfo("America/Argentina/Buenos_Aires")
 CAMPOS_API = ("casa", "nombre", "venta", "fechaActualizacion")
 # Nombres de la API que en el sistema se registran con otro nombre de tipo.
@@ -631,3 +636,199 @@ class ServicioCotizacionDolar:
     """
     if self._tipos.leer_por_id(cotizacion.tipo_cotizacion.id) is None:
       raise ValueError("No existe el tipo de cotización.")
+
+
+@dataclass(frozen=True)
+class FilaPrecio:
+  """Precio de un libro expresado en pesos y en otra moneda.
+
+  Args:
+    isbn: ISBN del libro.
+    titulo: Título del libro.
+    moneda_original: Código de la moneda en la que está cargado el precio.
+    valor_original: Importe cargado en la moneda original.
+    valor_pesos: Importe convertido a pesos (None si no hay tasa).
+    valor_moneda: Importe en la moneda elegida (None si no hay tasa).
+  """
+
+  isbn: str
+  titulo: str
+  moneda_original: str
+  valor_original: float
+  valor_pesos: Optional[float]
+  valor_moneda: Optional[float]
+
+
+class ServicioListaPrecios:
+  """Lógica de conversión de precios entre monedas y su exportación.
+
+  La conversión usa como puente al peso: cada moneda tiene una tasa en
+  pesos por unidad (ARS = 1, USD = cotización vigente del dólar).
+
+  Args:
+    precios: Repositorio de precios.
+    libros: Repositorio de libros.
+    cotizaciones: Repositorio de cotizaciones del dólar.
+    tipos: Repositorio de tipos de cotización.
+    carpeta_exportacion: Carpeta donde se guardan los CSV exportados.
+  """
+
+  def __init__(
+    self,
+    precios: IRepositorio[Precio],
+    libros: IRepositorio[Libro],
+    cotizaciones: IRepositorioCotizacionDolar,
+    tipos: IRepositorio[TipoCotizacion],
+    carpeta_exportacion: Path,
+  ) -> None:
+    self._precios = precios
+    self._libros = libros
+    self._cotizaciones = cotizaciones
+    self._tipos = tipos
+    self._carpeta_exportacion = carpeta_exportacion
+
+  def cotizacion_vigente(self, tipo_id: int) -> CotizacionDolar:
+    """Obtiene la cotización más reciente de un tipo.
+
+    Args:
+      tipo_id: ID del tipo de cotización.
+
+    Returns:
+      CotizacionDolar: Última cotización registrada para el tipo.
+
+    Raises:
+      ValueError: Si el tipo no tiene cotizaciones registradas.
+    """
+    historico = self._cotizaciones.leer_historico_por_tipo(tipo_id)
+    if not historico:
+      raise ValueError(
+        "El tipo de cotización no tiene valores; obtenga las cotizaciones."
+      )
+    return max(historico, key=lambda cotizacion: cotizacion.fecha)
+
+  def tasas(self, tipo_id: int) -> dict[str, float]:
+    """Devuelve cuántos pesos vale una unidad de cada moneda convertible.
+
+    Args:
+      tipo_id: ID del tipo de cotización usado para el dólar.
+
+    Returns:
+      dict[str, float]: Código de moneda -> pesos por unidad.
+    """
+    return {
+      MONEDA_LOCAL: 1.0,
+      MONEDA_DOLAR: self.cotizacion_vigente(tipo_id).valor,
+    }
+
+  @staticmethod
+  def convertir(
+    valor: float, origen: str, destino: str, tasas: dict[str, float]
+  ) -> Optional[float]:
+    """Convierte un importe entre dos monedas usando el peso como puente.
+
+    Args:
+      valor: Importe a convertir.
+      origen: Código de la moneda del importe.
+      destino: Código de la moneda a la que se convierte.
+      tasas: Pesos por unidad de cada moneda.
+
+    Returns:
+      Optional[float]: Importe convertido redondeado a 2 decimales, o
+        None si alguna de las dos monedas no tiene tasa.
+    """
+    if origen not in tasas or destino not in tasas:
+      return None
+    return round(valor * tasas[origen] / tasas[destino], 2)
+
+  def lista_bimonetaria(
+    self, codigo_moneda: str, tipo_id: int
+  ) -> list[FilaPrecio]:
+    """Arma la lista de precios de los libros en pesos y en otra moneda.
+
+    Args:
+      codigo_moneda: Código de la moneda elegida (ej. USD).
+      tipo_id: ID del tipo de cotización usado para el dólar.
+
+    Returns:
+      list[FilaPrecio]: Una fila por cada libro con precio cargado.
+
+    Raises:
+      ValueError: Si la moneda elegida no tiene tasa de conversión.
+    """
+    tasas = self.tasas(tipo_id)
+    codigo = codigo_moneda.upper()
+    if codigo not in tasas:
+      raise ValueError(
+        f"No hay cotización para convertir a {codigo}. "
+        f"Monedas disponibles: {', '.join(tasas)}."
+      )
+    filas = []
+    for precio in self._precios.leer_todos():
+      libro = self._libros.leer_por_id(precio.libro_isbn)
+      origen = precio.moneda.codigo
+      filas.append(FilaPrecio(
+        precio.libro_isbn,
+        libro.titulo if libro else "(libro inexistente)",
+        origen,
+        precio.valor,
+        self.convertir(precio.valor, origen, MONEDA_LOCAL, tasas),
+        self.convertir(precio.valor, origen, codigo, tasas),
+      ))
+    return filas
+
+  def exportar_csv(self, nombre_archivo: str = "lista_precios.csv") -> Path:
+    """Exporta los precios en pesos y en dólares de cada tipo de cotización.
+
+    Genera una columna en pesos (según la cotización oficial si existe,
+    o la primera disponible) y una columna en USD por cada tipo de
+    cotización con valores registrados.
+
+    Args:
+      nombre_archivo: Nombre del archivo CSV a generar.
+
+    Returns:
+      Path: Ruta del archivo generado.
+
+    Raises:
+      ValueError: Si no hay cotizaciones registradas.
+    """
+    tipos = [
+      tipo for tipo in self._tipos.leer_todos()
+      if self._cotizaciones.leer_historico_por_tipo(tipo.id)
+    ]
+    if not tipos:
+      raise ValueError("No hay cotizaciones registradas para exportar.")
+    tasas_por_tipo = {tipo.nombre: self.tasas(tipo.id) for tipo in tipos}
+    tipo_pesos = next(
+      (tipo.nombre for tipo in tipos if normalizar(tipo.nombre) == "oficial"),
+      tipos[0].nombre,
+    )
+
+    columnas_usd = [f"precio_USD_{nombre}" for nombre in tasas_por_tipo]
+    encabezado = [
+      "isbn", "titulo", "moneda_original", "precio_original",
+      f"precio_ARS_{tipo_pesos}", *columnas_usd,
+    ]
+    self._carpeta_exportacion.mkdir(parents=True, exist_ok=True)
+    ruta = self._carpeta_exportacion / nombre_archivo
+    with ruta.open("w", newline="", encoding="utf-8") as archivo:
+      escritor = csv.writer(archivo)
+      escritor.writerow(encabezado)
+      for precio in self._precios.leer_todos():
+        libro = self._libros.leer_por_id(precio.libro_isbn)
+        origen = precio.moneda.codigo
+        fila = [
+          precio.libro_isbn,
+          libro.titulo if libro else "",
+          origen,
+          precio.valor,
+          self.convertir(
+            precio.valor, origen, MONEDA_LOCAL, tasas_por_tipo[tipo_pesos]
+          ),
+        ]
+        fila += [
+          self.convertir(precio.valor, origen, MONEDA_DOLAR, tasas)
+          for tasas in tasas_por_tipo.values()
+        ]
+        escritor.writerow(["" if valor is None else valor for valor in fila])
+    return ruta
