@@ -32,7 +32,6 @@ MONEDA_LOCAL = "ARS"
 MONEDA_DOLAR = "USD"
 ZONA_HORARIA = ZoneInfo("America/Argentina/Buenos_Aires")
 CAMPOS_API = ("casa", "nombre", "venta", "fechaActualizacion")
-# Nombres de la API que en el sistema se registran con otro nombre de tipo.
 ALIAS_TIPOS: dict[str, str] = {
   "bolsa": "mep",
   "contadoconliqui": "ccl",
@@ -391,8 +390,9 @@ class ServicioStock:
       raise ValueError("La cantidad a ingresar debe ser positiva.")
     stock = self.leer_por_libro(libro_isbn)
     if stock is None:
-      return self.crear(Stock(libro_isbn, cantidad))
-    return self.actualizar(Stock(libro_isbn, stock.cantidad + cantidad))
+      return self.crear(Stock(self._obtener_libro(libro_isbn), cantidad))
+    stock.cantidad += cantidad
+    return self.actualizar(stock)
 
   def retirar(self, libro_isbn: str, cantidad: int) -> Stock:
     """Descuenta unidades del stock de un libro.
@@ -412,7 +412,25 @@ class ServicioStock:
     stock = self.leer_por_libro(libro_isbn)
     if stock is None or stock.cantidad < cantidad:
       raise ValueError("Stock insuficiente.")
-    return self.actualizar(Stock(libro_isbn, stock.cantidad - cantidad))
+    stock.cantidad -= cantidad
+    return self.actualizar(stock)
+
+  def _obtener_libro(self, libro_isbn: str) -> Libro:
+    """Obtiene el libro asociado a un stock.
+
+    Args:
+      libro_isbn: ISBN del libro.
+
+    Returns:
+      Libro: El libro encontrado.
+
+    Raises:
+      ValueError: Si el libro no existe.
+    """
+    libro = self._libros.leer_por_id(libro_isbn)
+    if libro is None:
+      raise ValueError("No existe el libro para el stock.")
+    return libro
 
   def _validar_libro(self, libro_isbn: str) -> None:
     """Verifica que el libro asociado al stock exista.
@@ -423,8 +441,7 @@ class ServicioStock:
     Raises:
       ValueError: Si el libro no existe.
     """
-    if self._libros.leer_por_id(libro_isbn) is None:
-      raise ValueError("No existe el libro para el stock.")
+    self._obtener_libro(libro_isbn)
 
 
 class ServicioCotizacionDolar:
@@ -667,7 +684,6 @@ class ServicioListaPrecios:
 
   Args:
     precios: Repositorio de precios.
-    libros: Repositorio de libros.
     cotizaciones: Repositorio de cotizaciones del dólar.
     tipos: Repositorio de tipos de cotización.
     carpeta_exportacion: Carpeta donde se guardan los CSV exportados.
@@ -676,13 +692,11 @@ class ServicioListaPrecios:
   def __init__(
     self,
     precios: IRepositorio[Precio],
-    libros: IRepositorio[Libro],
     cotizaciones: IRepositorioCotizacionDolar,
     tipos: IRepositorio[TipoCotizacion],
     carpeta_exportacion: Path,
   ) -> None:
     self._precios = precios
-    self._libros = libros
     self._cotizaciones = cotizaciones
     self._tipos = tipos
     self._carpeta_exportacion = carpeta_exportacion
@@ -764,11 +778,10 @@ class ServicioListaPrecios:
       )
     filas = []
     for precio in self._precios.leer_todos():
-      libro = self._libros.leer_por_id(precio.libro_isbn)
       origen = precio.moneda.codigo
       filas.append(FilaPrecio(
-        precio.libro_isbn,
-        libro.titulo if libro else "(libro inexistente)",
+        precio.libro.isbn,
+        precio.libro.titulo,
         origen,
         precio.valor,
         self.convertir(precio.valor, origen, MONEDA_LOCAL, tasas),
@@ -815,11 +828,10 @@ class ServicioListaPrecios:
       escritor = csv.writer(archivo)
       escritor.writerow(encabezado)
       for precio in self._precios.leer_todos():
-        libro = self._libros.leer_por_id(precio.libro_isbn)
         origen = precio.moneda.codigo
         fila = [
-          precio.libro_isbn,
-          libro.titulo if libro else "",
+          precio.libro.isbn,
+          precio.libro.titulo,
           origen,
           precio.valor,
           self.convertir(

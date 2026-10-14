@@ -18,6 +18,10 @@
 - Se registra el valor de venta en la fecha de Argentina; si ya existe para tipo y fecha, se actualiza.
 - Errores de red, HTTP o formato se informan como ValueError.
 - Se agrega requests a requirements.txt.
+- Corrección: se versiona .env solo con API_URL, como pide la estructura; DATABASE_URL queda en el secret de Colab.
+- Se elimina .env.example y se actualiza .gitignore.
+- ServicioStock y ServicioListaPrecios trabajan con el objeto Libro.
+- requirements.txt actualizado con versiones mínimas.
 
 [Ejercicio 6]
 - Se reemplazan los repositorios en memoria por repositorios con SQLAlchemy.

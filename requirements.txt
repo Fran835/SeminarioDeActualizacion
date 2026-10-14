@@ -1,5 +1,4 @@
-# Sin dependencias externas: solo biblioteca estándar de Python >= 3.10.
 SQLAlchemy>=2.0
-python-dotenv
-psycopg2-binary
-requests
+python-dotenv>=1.0
+psycopg2-binary>=2.9
+requests>=2.31
