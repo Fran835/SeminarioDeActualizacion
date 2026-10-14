@@ -55,6 +55,9 @@
 - Se implementa Singleton, sesiones transaccionales y prueba de conexión.
 - Se habilitan las claves foráneas en SQLite.
 - Se agregan SQLAlchemy, python-dotenv y psycopg2-binary a requirements.txt.
+- Corrección: DATABASE_URL se toma del entorno o del secret de Colab (Supabase); la contraseña nunca se guarda en el repositorio.
+- Las URL postgres:// de Supabase se adaptan al driver psycopg2.
+- Estilo: indentación de 2 espacios, líneas de hasta 80 caracteres y sin comentarios en línea.
 
 ## Sprint 1
 
