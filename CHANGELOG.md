@@ -42,6 +42,7 @@
 - Relaciones: libro N:1 editorial/género, precio N:1 libro/moneda, stock 1:1 libro, cotización N:1 tipo.
 - Restricciones de unicidad (isbn, precio por moneda, cotización por tipo y fecha) y CHECK de valores no negativos.
 - Se crean las tablas en la base con ConexionDB.crear_tablas().
+- Estilo: indentación de 2 espacios y sin comentarios en línea.
 
 [Ejercicio 3]
 - Se crea el context manager GestorTransaccion en database/connection.py.
