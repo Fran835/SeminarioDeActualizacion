@@ -26,6 +26,9 @@
 - Precio: un precio por libro identificado por ISBN; al modificarlo puede cambiar la moneda.
 - Los errores de integridad de la base se traducen a ValueError.
 - main.py crea las tablas, migra opcionalmente los CSV y arma los servicios con sus dependencias.
+- Corrección TP1: Precio y Stock tienen como atributo un objeto Libro en lugar del ISBN (relación entre clases).
+- Los repositorios de precios y stock construyen el Libro con su editorial y su género.
+- Estilo: indentación de 2 espacios y sin comentarios en línea.
 
 [Ejercicio 5]
 - Se crea migrations/migrations.py con la función migrar_datos().

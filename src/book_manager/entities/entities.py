@@ -332,25 +332,32 @@ class Precio(EntidadBase):
   """Valor monetario de un libro expresado en una moneda.
 
   Args:
-    libro_isbn: ISBN del libro al que corresponde el precio.
+    libro: Libro al que corresponde el precio.
     valor: Importe del precio, mayor o igual a cero.
     moneda: Moneda en la que se expresa el importe.
   """
 
-  def __init__(self, libro_isbn: str, valor: float, moneda: Moneda) -> None:
-    self._libro_isbn = validar_texto(libro_isbn, "ISBN del libro")
+  def __init__(self, libro: Libro, valor: float, moneda: Moneda) -> None:
+    if not isinstance(libro, Libro):
+      raise ValueError("El libro del precio no es válido.")
+    self._libro = libro
     self.valor = valor
     self.moneda = moneda
 
   @property
+  def libro(self) -> Libro:
+    """Libro: Libro al que corresponde el precio (inmutable)."""
+    return self._libro
+
+  @property
   def libro_isbn(self) -> str:
     """str: ISBN del libro al que corresponde el precio."""
-    return self._libro_isbn
+    return self._libro.isbn
 
   @property
   def clave(self) -> str:
     """str: Clave del precio en el repositorio (ISBN del libro)."""
-    return self._libro_isbn
+    return self._libro.isbn
 
   @property
   def valor(self) -> float:
@@ -377,7 +384,7 @@ class Precio(EntidadBase):
   def __repr__(self) -> str:
     """Devuelve una representación legible del precio."""
     return (
-      f"Precio(libro_isbn='{self._libro_isbn}', "
+      f"Precio(libro='{self._libro.titulo}', "
       f"valor={self._moneda.simbolo} {self._valor:,.2f} "
       f"{self._moneda.codigo})"
     )
@@ -387,18 +394,25 @@ class Stock:
   """Cantidad disponible de un libro en el inventario.
 
   Args:
-    libro_isbn: ISBN del libro inventariado.
+    libro: Libro inventariado.
     cantidad: Unidades disponibles, mayor o igual a cero.
   """
 
-  def __init__(self, libro_isbn: str, cantidad: int) -> None:
-    self._libro_isbn = validar_texto(libro_isbn, "ISBN del libro")
+  def __init__(self, libro: Libro, cantidad: int) -> None:
+    if not isinstance(libro, Libro):
+      raise ValueError("El libro del stock no es válido.")
+    self._libro = libro
     self.cantidad = cantidad
+
+  @property
+  def libro(self) -> Libro:
+    """Libro: Libro inventariado (inmutable)."""
+    return self._libro
 
   @property
   def libro_isbn(self) -> str:
     """str: ISBN del libro inventariado."""
-    return self._libro_isbn
+    return self._libro.isbn
 
   @property
   def cantidad(self) -> int:
@@ -414,7 +428,8 @@ class Stock:
   def __repr__(self) -> str:
     """Devuelve una representación legible del stock."""
     return (
-      f"Stock(libro_isbn='{self._libro_isbn}', cantidad={self._cantidad})"
+      f"Stock(libro='{self._libro.titulo}', isbn='{self._libro.isbn}', "
+      f"cantidad={self._cantidad})"
     )
 
 
