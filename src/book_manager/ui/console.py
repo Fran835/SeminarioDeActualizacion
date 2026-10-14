@@ -43,7 +43,6 @@ class ConsoleUI:
     svc_stock: Servicio de stock.
     svc_cotizacion: Servicio de cotizaciones del dólar.
     svc_lista_precios: Servicio de conversión y exportación de precios.
-    guardar: Función que persiste los datos luego de cada operación.
   """
 
   ANCHO_SEPARADOR = 40
@@ -59,7 +58,6 @@ class ConsoleUI:
     svc_stock: ServicioStock,
     svc_cotizacion: ServicioCotizacionDolar,
     svc_lista_precios: ServicioListaPrecios,
-    guardar: Callable[[], None] = lambda: None,
   ) -> None:
     self._svc_genero = svc_genero
     self._svc_editorial = svc_editorial
@@ -70,7 +68,6 @@ class ConsoleUI:
     self._svc_stock = svc_stock
     self._svc_cotizacion = svc_cotizacion
     self._svc_lista_precios = svc_lista_precios
-    self._guardar = guardar
 
   def iniciar(self) -> None:
     """Muestra el menú principal hasta que el usuario elige salir."""
@@ -94,8 +91,7 @@ class ConsoleUI:
   ) -> None:
     """Muestra un menú de opciones y ejecuta la acción elegida.
 
-    Los errores de validación se informan sin interrumpir el programa y,
-    si la acción termina bien, los datos se persisten en disco.
+    Los errores de validación se informan sin interrumpir el programa.
 
     Args:
       titulo: Título del menú.
@@ -117,7 +113,6 @@ class ConsoleUI:
         continue
       try:
         acciones[opcion][1]()
-        self._guardar()
       except ValueError as error:
         print(f"Error: {error}")
 
@@ -258,9 +253,9 @@ class ConsoleUI:
     print(f"Creado: {self._svc_genero.crear(genero)}")
 
   def _modificar_genero(self) -> None:
-    """Solicita los datos nuevos de un género y lo actualiza."""
-    actual = self._obtener(self._svc_genero, self._pedir_entero("ID"))
-    genero = Genero(actual.id, self._pedir_texto("Nombre", actual.nombre))
+    """Modifica en su lugar el género existente indicado."""
+    genero = self._obtener(self._svc_genero, self._pedir_entero("ID"))
+    genero.nombre = self._pedir_texto("Nombre", genero.nombre)
     print(f"Modificado: {self._svc_genero.actualizar(genero)}")
 
   def _menu_editoriales(self) -> None:
@@ -285,12 +280,11 @@ class ConsoleUI:
     print(f"Creada: {self._svc_editorial.crear(editorial)}")
 
   def _modificar_editorial(self) -> None:
-    """Solicita los datos nuevos de una editorial y la actualiza."""
-    actual = self._obtener(self._svc_editorial, self._pedir_entero("ID"))
-    editorial = Editorial(
-      actual.id,
-      self._pedir_texto("Nombre", actual.nombre),
-      self._pedir_texto("Contacto", actual.contacto or ""),
+    """Modifica en su lugar la editorial existente indicada."""
+    editorial = self._obtener(self._svc_editorial, self._pedir_entero("ID"))
+    editorial.nombre = self._pedir_texto("Nombre", editorial.nombre)
+    editorial.contacto = self._pedir_texto(
+      "Contacto", editorial.contacto or ""
     )
     print(f"Modificada: {self._svc_editorial.actualizar(editorial)}")
 
@@ -316,13 +310,10 @@ class ConsoleUI:
     print(f"Creada: {self._svc_moneda.crear(moneda)}")
 
   def _modificar_moneda(self) -> None:
-    """Solicita los datos nuevos de una moneda y la actualiza."""
-    actual = self._obtener(self._svc_moneda, self._pedir_entero("ID"))
-    moneda = Moneda(
-      actual.id,
-      self._pedir_texto("Código ISO", actual.codigo),
-      self._pedir_texto("Símbolo", actual.simbolo),
-    )
+    """Modifica en su lugar la moneda existente indicada."""
+    moneda = self._obtener(self._svc_moneda, self._pedir_entero("ID"))
+    moneda.codigo = self._pedir_texto("Código ISO", moneda.codigo)
+    moneda.simbolo = self._pedir_texto("Símbolo", moneda.simbolo)
     print(f"Modificada: {self._svc_moneda.actualizar(moneda)}")
 
   def _menu_tipos_cotizacion(self) -> None:
@@ -346,11 +337,11 @@ class ConsoleUI:
     print(f"Creado: {self._svc_tipo_cotizacion.crear(tipo)}")
 
   def _modificar_tipo_cotizacion(self) -> None:
-    """Solicita los datos nuevos de un tipo de cotización y lo actualiza."""
-    actual = self._obtener(
+    """Modifica en su lugar el tipo de cotización existente indicado."""
+    tipo = self._obtener(
       self._svc_tipo_cotizacion, self._pedir_entero("ID")
     )
-    tipo = TipoCotizacion(actual.id, self._pedir_texto("Nombre", actual.nombre))
+    tipo.nombre = self._pedir_texto("Nombre", tipo.nombre)
     print(f"Modificado: {self._svc_tipo_cotizacion.actualizar(tipo)}")
 
   def _menu_libros(self) -> None:
@@ -377,19 +368,16 @@ class ConsoleUI:
     print(f"Creado: {self._svc_libro.crear(libro)}")
 
   def _modificar_libro(self) -> None:
-    """Solicita los datos nuevos de un libro y lo actualiza."""
-    actual = self._obtener(self._svc_libro, self._pedir_texto("ISBN"))
-    libro = Libro(
-      actual.isbn,
-      self._pedir_texto("Título", actual.titulo),
-      self._pedir_texto("Autor", actual.autor),
-      self._obtener(
-        self._svc_editorial,
-        self._pedir_entero("ID Editorial", actual.editorial.id),
-      ),
-      self._obtener(
-        self._svc_genero, self._pedir_entero("ID Género", actual.genero.id)
-      ),
+    """Modifica en su lugar el libro existente indicado."""
+    libro = self._obtener(self._svc_libro, self._pedir_texto("ISBN"))
+    libro.titulo = self._pedir_texto("Título", libro.titulo)
+    libro.autor = self._pedir_texto("Autor", libro.autor)
+    libro.editorial = self._obtener(
+      self._svc_editorial,
+      self._pedir_entero("ID Editorial", libro.editorial.id),
+    )
+    libro.genero = self._obtener(
+      self._svc_genero, self._pedir_entero("ID Género", libro.genero.id)
     )
     print(f"Modificado: {self._svc_libro.actualizar(libro)}")
 
@@ -406,23 +394,20 @@ class ConsoleUI:
     })
 
   def _crear_precio(self) -> None:
-    """Solicita los datos de un precio y lo crea."""
+    """Solicita los datos de un precio y lo crea con su objeto Libro."""
     precio = Precio(
-      self._pedir_texto("ISBN del libro"),
+      self._obtener(self._svc_libro, self._pedir_texto("ISBN del libro")),
       self._pedir_decimal("Valor"),
       self._obtener(self._svc_moneda, self._pedir_entero("ID Moneda")),
     )
     print(f"Creado: {self._svc_precio.crear(precio)}")
 
   def _modificar_precio(self) -> None:
-    """Solicita los datos nuevos de un precio y lo actualiza."""
-    actual = self._obtener(self._svc_precio, self._pedir_texto("ISBN"))
-    precio = Precio(
-      actual.libro_isbn,
-      self._pedir_decimal("Valor", actual.valor),
-      self._obtener(
-        self._svc_moneda, self._pedir_entero("ID Moneda", actual.moneda.id)
-      ),
+    """Modifica en su lugar el precio existente de un libro."""
+    precio = self._obtener(self._svc_precio, self._pedir_texto("ISBN"))
+    precio.valor = self._pedir_decimal("Valor", precio.valor)
+    precio.moneda = self._obtener(
+      self._svc_moneda, self._pedir_entero("ID Moneda", precio.moneda.id)
     )
     print(f"Modificado: {self._svc_precio.actualizar(precio)}")
 
@@ -441,19 +426,19 @@ class ConsoleUI:
     })
 
   def _crear_stock(self) -> None:
-    """Solicita los datos de un stock inicial y lo crea."""
+    """Solicita los datos de un stock inicial y lo crea con su Libro."""
     stock = Stock(
-      self._pedir_texto("ISBN del libro"), self._pedir_entero("Cantidad")
+      self._obtener(self._svc_libro, self._pedir_texto("ISBN del libro")),
+      self._pedir_entero("Cantidad"),
     )
     print(f"Creado: {self._svc_stock.crear(stock)}")
 
   def _modificar_stock(self) -> None:
-    """Solicita la cantidad exacta de un stock y lo actualiza."""
-    isbn = self._pedir_texto("ISBN del libro")
-    actual = self._svc_stock.leer_por_libro(isbn)
-    if actual is None:
+    """Modifica en su lugar la cantidad exacta de stock de un libro."""
+    stock = self._svc_stock.leer_por_libro(self._pedir_texto("ISBN"))
+    if stock is None:
       raise ValueError("No existe stock para el libro indicado.")
-    stock = Stock(isbn, self._pedir_entero("Cantidad", actual.cantidad))
+    stock.cantidad = self._pedir_entero("Cantidad", stock.cantidad)
     print(f"Modificado: {self._svc_stock.actualizar(stock)}")
 
   def _ingresar_stock(self) -> None:
@@ -499,17 +484,13 @@ class ConsoleUI:
     print(f"Creada: {self._svc_cotizacion.crear(cotizacion)}")
 
   def _modificar_cotizacion(self) -> None:
-    """Solicita el valor nuevo de una cotización y la actualiza."""
-    tipo_id = self._pedir_entero("ID Tipo")
-    fecha = self._pedir_fecha("Fecha")
-    actual = self._svc_cotizacion.leer_por_tipo_y_fecha(tipo_id, fecha)
-    if actual is None:
-      raise ValueError("No existe la cotización indicada.")
-    cotizacion = CotizacionDolar(
-      actual.tipo_cotizacion,
-      actual.fecha,
-      self._pedir_decimal("Valor en ARS", actual.valor),
+    """Modifica en su lugar el valor de una cotización existente."""
+    cotizacion = self._svc_cotizacion.leer_por_tipo_y_fecha(
+      self._pedir_entero("ID Tipo"), self._pedir_fecha("Fecha")
     )
+    if cotizacion is None:
+      raise ValueError("No existe la cotización indicada.")
+    cotizacion.valor = self._pedir_decimal("Valor en ARS", cotizacion.valor)
     print(f"Modificada: {self._svc_cotizacion.actualizar(cotizacion)}")
 
   def _obtener_cotizaciones_api(self) -> None:

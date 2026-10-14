@@ -9,6 +9,10 @@
 - La lista bimonetaria muestra cada libro en pesos y en la moneda elegida según el tipo de cotización.
 - La exportación genera exports/lista_precios.csv con el precio en pesos y en USD por cada tipo de cotización.
 - main.py carga el .env con load_dotenv y crea el nuevo servicio.
+- Corrección TP1: al modificar se actualiza el objeto existente con sus setters en lugar de crear uno nuevo.
+- Se quita el parámetro guardar que quedaba del Sprint 1.
+- main() ya no recarga los CSV al ejecutarse como script; import_default_data=True solo se usa para la carga inicial.
+- La carpeta exports/ se genera al usar el programa y no se versiona.
 
 [Ejercicio 7]
 - Se agrega API_URL=https://dolarapi.com/v1/dolares al .env y se carga con python-dotenv.
