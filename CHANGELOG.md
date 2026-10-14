@@ -35,6 +35,9 @@
 - Validación de encabezados: si falta una columna la migración se detiene con un mensaje claro.
 - Generación de un archivo .sql de INSERTs por tabla en migrations/sql.
 - Ejecución en una única transacción (todo o nada), re-ejecutable y con escape de comillas.
+- Datos migrados a la base PostgreSQL de Supabase.
+- preload_data.py queda solo con la generación de los CSV del Sprint 1; se quitan funciones que ya no se usan.
+- Estilo: indentación de 2 espacios y sin comentarios en línea.
 
 [Ejercicio 4]
 - Se crean los modelos ORM en models/models.py con la Base declarativa.
