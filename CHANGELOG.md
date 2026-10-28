@@ -2,6 +2,10 @@
 
 ## Sprint 3
 
+[Ejercicio 7]
+- Menú principal: 12 Ejecutar scraping (pide la diferencia mínima antes de cada ejecución), 13 Generar reporte y 14 Ver historial de auditoría.
+- main.py arma los servicios nuevos con crear_aplicacion() y configura la auditoría.
+
 [Ejercicio 6]
 - Se agrega la entidad Auditoria, el modelo AuditoriaModel (tabla auditorias con acción, fecha y detalles) y RepositorioAuditoria.
 - services/auditoria.py: ServicioAuditoria y el decorador @auditar(accion), que registra el éxito o el error de cada operación sin interrumpirla si la auditoría falla.

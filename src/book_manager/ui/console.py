@@ -25,6 +25,9 @@ from book_manager.services.services import (
   ServicioStock,
   ServicioTipoCotizacion,
 )
+from book_manager.services.auditoria import ServicioAuditoria
+from book_manager.services.reportes import ServicioReportes
+from book_manager.services.scraping import ServicioScraping
 
 T = TypeVar("T", bound=EntidadBase)
 Acciones = dict[str, tuple[str, Callable[[], None]]]
@@ -43,6 +46,9 @@ class ConsoleUI:
     svc_stock: Servicio de stock.
     svc_cotizacion: Servicio de cotizaciones del dólar.
     svc_lista_precios: Servicio de conversión y exportación de precios.
+    svc_scraping: Servicio que ejecuta el scraper y genera alertas.
+    svc_reportes: Servicio que genera el reporte Excel.
+    svc_auditoria: Servicio de consulta del historial de auditoría.
   """
 
   ANCHO_SEPARADOR = 40
@@ -58,6 +64,9 @@ class ConsoleUI:
     svc_stock: ServicioStock,
     svc_cotizacion: ServicioCotizacionDolar,
     svc_lista_precios: ServicioListaPrecios,
+    svc_scraping: ServicioScraping,
+    svc_reportes: ServicioReportes,
+    svc_auditoria: ServicioAuditoria,
   ) -> None:
     self._svc_genero = svc_genero
     self._svc_editorial = svc_editorial
@@ -68,6 +77,9 @@ class ConsoleUI:
     self._svc_stock = svc_stock
     self._svc_cotizacion = svc_cotizacion
     self._svc_lista_precios = svc_lista_precios
+    self._svc_scraping = svc_scraping
+    self._svc_reportes = svc_reportes
+    self._svc_auditoria = svc_auditoria
 
   def iniciar(self) -> None:
     """Muestra el menú principal hasta que el usuario elige salir."""
@@ -83,6 +95,9 @@ class ConsoleUI:
       "9": ("Obtener cotizaciones por API", self._obtener_cotizaciones_api),
       "10": ("Ver lista de precios bimonetaria", self._lista_bimonetaria),
       "11": ("Exportar precios a CSV", self._exportar_precios),
+      "12": ("Ejecutar scraping", self._ejecutar_scraping),
+      "13": ("Generar reporte", self._generar_reporte),
+      "14": ("Ver historial de auditoría", self._ver_historial_auditoria),
     }, texto_salida="Salir")
     print("Saliendo del sistema...")
 
@@ -538,3 +553,34 @@ class ConsoleUI:
     """Exporta la lista de precios a un archivo CSV."""
     ruta = self._svc_lista_precios.exportar_csv()
     print(f"Precios exportados en: {ruta}")
+
+  def _ejecutar_scraping(self) -> None:
+    """Ejecuta el scraper del catálogo y genera las alertas."""
+    umbral = self._pedir_decimal(
+      "Diferencia mínima para alertas (%)", 10.0
+    )
+    print("Ejecutando el scraper; puede tardar varios minutos...")
+    resultado = self._svc_scraping.ejecutar(umbral=umbral)
+    print(f"Extracciones: {resultado.total_extracciones}")
+    print(f"Comparaciones: {resultado.alertas.total_comparaciones}")
+    print(f"Alertas: {resultado.alertas.total_alertas}")
+    print(f"CSV de alertas: {resultado.alertas.ruta_alertas}")
+
+  def _generar_reporte(self) -> None:
+    """Genera el reporte Excel con las comparaciones más recientes."""
+    ruta = self._svc_reportes.generar_reporte_precios()
+    print(f"Reporte Excel generado en: {ruta}")
+
+  def _ver_historial_auditoria(self) -> None:
+    """Muestra las últimas operaciones registradas en la auditoría."""
+    limite = self._pedir_entero("Cantidad de registros a mostrar", 50)
+    registros = self._svc_auditoria.historial(limite)
+    if not registros:
+      print("No hay registros de auditoría.")
+      return
+    print(f"{'Fecha':<20} {'Acción':<22} Detalles")
+    print("-" * 100)
+    for registro in registros:
+      fecha = registro.fecha.isoformat(sep=" ", timespec="seconds")
+      print(f"{fecha:<20} {registro.accion[:22]:<22} {registro.detalles}")
+    print(f"Total: {len(registros)} registro(s).")
