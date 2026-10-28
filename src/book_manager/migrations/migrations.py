@@ -196,6 +196,67 @@ def _sincronizar_secuencias(sesion: Session) -> None:
     ))
 
 
+def leer_sentencias_sql(ruta: Path) -> list[str]:
+  """Lee las sentencias de un archivo .sql, omitiendo los comentarios.
+
+  Args:
+    ruta (Path): Archivo .sql con una sentencia por línea.
+
+  Returns:
+    list[str]: Sentencias SQL listas para ejecutar.
+  """
+  lineas = ruta.read_text(encoding="utf-8").splitlines()
+  return [
+    linea.strip() for linea in lineas
+    if linea.strip() and not linea.strip().startswith("--")
+  ]
+
+
+def cargar_datos_desde_sql(
+  ruta_sql: str, conexion: ConexionDB | None = None
+) -> dict[str, int]:
+  """Carga en la base de datos los datos de archivos .sql.
+
+  Recibe un archivo .sql o una carpeta. Con una carpeta, vacía las
+  tablas del sistema y ejecuta todos sus archivos en orden alfabético
+  (01_generos.sql, 02_editoriales.sql, ...), que respeta las
+  dependencias entre tablas. Todo se ejecuta en una única transacción:
+  si una sentencia falla, no se carga nada.
+
+  Args:
+    ruta_sql (str): Archivo .sql o carpeta con archivos .sql.
+    conexion (ConexionDB | None): Conexión a utilizar. Por defecto se
+      usa la instancia única de ConexionDB.
+
+  Returns:
+    dict[str, int]: Cantidad de sentencias ejecutadas por tabla.
+
+  Raises:
+    FileNotFoundError: Si la ruta no existe o no contiene archivos .sql.
+  """
+  ruta = Path(ruta_sql)
+  if not ruta.exists():
+    raise FileNotFoundError(f"No existe la ruta {ruta}.")
+  archivos = sorted(ruta.glob("*.sql")) if ruta.is_dir() else [ruta]
+  if not archivos:
+    raise FileNotFoundError(f"No hay archivos .sql en {ruta}.")
+  conexion = conexion or ConexionDB()
+  cargadas: dict[str, int] = {}
+  with conexion.transaccion() as sesion:
+    if ruta.is_dir():
+      _vaciar_tablas(sesion)
+    conexion_sql = sesion.connection()
+    for archivo in archivos:
+      sentencias = leer_sentencias_sql(archivo)
+      for sentencia in sentencias:
+        conexion_sql.exec_driver_sql(sentencia)
+      tabla = archivo.stem.split("_", 1)[-1]
+      cargadas[tabla] = len(sentencias)
+    if conexion.motor == "postgresql":
+      _sincronizar_secuencias(sesion)
+  return cargadas
+
+
 def migrar_datos(
   carpeta_csvs: str,
   carpeta_sqls: str,
@@ -204,8 +265,9 @@ def migrar_datos(
   """Función encargada de la migración de datos de csv a sql.
 
   Se encarga de leer los archivos csv y crear los archivos sql
-  para la inserción en la base de datos. Luego ejecuta esas sentencias
-  dentro de una única transacción: si alguna falla, no se migra nada.
+  para la inserción en la base de datos. Luego los carga con
+  cargar_datos_desde_sql dentro de una única transacción: si alguna
+  sentencia falla, no se migra nada.
 
   Args:
     carpeta_csvs (str): Carpeta donde se encuentran los archivos csv
@@ -221,27 +283,10 @@ def migrar_datos(
   origen = Path(carpeta_csvs)
   destino = Path(carpeta_sqls)
   destino.mkdir(parents=True, exist_ok=True)
-  conexion = conexion or ConexionDB()
-
-  sentencias_por_tabla: dict[str, list[str]] = {}
   for numero, tabla in enumerate(TABLAS, start=1):
     requeridas = [columna.origen for columna in tabla.columnas]
     filas = leer_csv(origen / tabla.archivo_csv, requeridas)
     sentencias = generar_inserts(tabla, filas)
     archivo_sql = destino / f"{numero:02d}_{tabla.tabla}.sql"
     escribir_sql(archivo_sql, tabla.archivo_csv, sentencias)
-    sentencias_por_tabla[tabla.tabla] = sentencias
-
-  with conexion.transaccion() as sesion:
-    _vaciar_tablas(sesion)
-    conexion_sql = sesion.connection()
-    for sentencias in sentencias_por_tabla.values():
-      for sentencia in sentencias:
-        conexion_sql.exec_driver_sql(sentencia)
-    if conexion.motor == "postgresql":
-      _sincronizar_secuencias(sesion)
-
-  return {
-    tabla: len(sentencias)
-    for tabla, sentencias in sentencias_por_tabla.items()
-  }
+  return cargar_datos_desde_sql(str(destino), conexion)

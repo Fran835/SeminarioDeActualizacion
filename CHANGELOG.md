@@ -2,6 +2,10 @@
 
 ## Sprint 3
 
+[Ejercicio 2]
+- Se agrega cargar_datos_desde_sql(ruta_sql, conexion) en migrations.py: carga un archivo .sql o todos los de una carpeta, en orden y dentro de una única transacción.
+- migrar_datos reutiliza cargar_datos_desde_sql después de generar los archivos .sql desde los CSV.
+
 [Ejercicio 1]
 - Se crea la rama Sprint_3 a partir de la rama Sprint_2.
 - README.md actualizado con el objetivo y el contexto del Sprint 3.
