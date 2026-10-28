@@ -2,6 +2,11 @@
 
 ## Sprint 3
 
+[Ejercicio 4]
+- ServicioComparacion empareja cada resultado con el libro del catálogo (ISBN o título) y compara el precio interno con el web.
+- Los precios en USD se convierten con la cotización más reciente.
+- ServicioScraping ejecuta el scraper y en cada ejecución genera reportes/alertas_<fecha>.csv con la diferencia que ingresa el usuario, además del CSV con todas las comparaciones.
+
 [Ejercicio 3]
 - Se implementa CuspideSpider: busca solo los títulos del catálogo (leídos de la base) y sigue los 10 primeros resultados de cada búsqueda.
 - Extrae precio, URL de la imagen, formas de pago con su precio y descripción detallada de cada ficha.
