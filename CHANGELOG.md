@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## Sprint 3
+
+[Ejercicio 1]
+- Se crea la rama Sprint_3 a partir de la rama Sprint_2.
+- README.md actualizado con el objetivo y el contexto del Sprint 3.
+- Se agrega la carpeta reportes/ (con .gitkeep) para los reportes generados; su contenido queda fuera del repositorio (.gitignore).
+- requirements.txt suma scrapy y openpyxl.
+- Corrección TP2 (Ejercicio 03): __exit__ del context manager hace rollback si falla el commit, para cerrar la transacción revertida.
+
 ## Sprint 2
 
 [Ejercicio 8]

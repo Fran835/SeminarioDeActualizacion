@@ -2,3 +2,5 @@ SQLAlchemy>=2.0
 python-dotenv>=1.0
 psycopg2-binary>=2.9
 requests>=2.31
+scrapy>=2.11
+openpyxl>=3.1

@@ -164,23 +164,32 @@ class GestorTransaccion:
     error: BaseException | None,
     traza: TracebackType | None,
   ) -> bool:
-    """Confirma o revierte la transacción y cierra la sesión."""
+    """Confirma o revierte la transacción y cierra la sesión.
+
+    Si el bloque terminó bien se hace commit. Si el bloque lanzó una
+    excepción, o si falla el propio commit, se hace rollback para que la
+    transacción se cierre revertida. La sesión se cierra siempre y la
+    excepción no se suprime.
+
+    Args:
+      tipo_error: Tipo de la excepción del bloque, o None.
+      error: Excepción del bloque, o None.
+      traza: Traza de la excepción, o None.
+
+    Returns:
+      bool: False, para propagar cualquier excepción.
+    """
     if self.__sesion is None:
       return False
     try:
       if tipo_error is None:
-        self.__confirmar()
+        self.__sesion.commit()
       else:
         self.__sesion.rollback()
+    except Exception:
+      self.__sesion.rollback()
+      raise
     finally:
       self.__sesion.close()
       self.__sesion = None
     return False
-
-  def __confirmar(self) -> None:
-    """Hace commit; si el commit falla, revierte y relanza el error."""
-    try:
-      self.__sesion.commit()
-    except Exception:
-      self.__sesion.rollback()
-      raise
