@@ -2,6 +2,13 @@
 
 ## Sprint 3
 
+[Ejercicio 3]
+- Se implementa CuspideSpider: busca solo los títulos del catálogo (leídos de la base) y sigue los 10 primeros resultados de cada búsqueda.
+- Extrae precio, URL de la imagen, formas de pago con su precio y descripción detallada de cada ficha.
+- LibroLoader limpia textos y convierte el precio a Decimal.
+- Pipelines: validación, descarte de duplicados y persistencia en reportes/scraping_<fecha>.jsonl y .csv.
+- settings.py con reglas de cortesía (1 petición concurrente, demora y AutoThrottle); el spider corre en un subproceso (runner.py).
+
 [Ejercicio 2]
 - Se agrega cargar_datos_desde_sql(ruta_sql, conexion) en migrations.py: carga un archivo .sql o todos los de una carpeta, en orden y dentro de una única transacción.
 - migrar_datos reutiliza cargar_datos_desde_sql después de generar los archivos .sql desde los CSV.
