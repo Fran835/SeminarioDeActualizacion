@@ -15,6 +15,7 @@ from book_manager.repositories.repositories import (
   IRepositorio,
   IRepositorioCotizacionDolar,
 )
+from book_manager.services.auditoria import auditar
 from book_manager.services.services import normalizar
 
 MONEDA_LOCAL = "ARS"
@@ -206,6 +207,7 @@ class ServicioComparacion:
 
     return [comparacion for _, comparacion in mejores.values()]
 
+  @auditar("comparar_precios")
   def generar_alertas(
     self, umbral: float, ruta: Optional[Path] = None
   ) -> ResultadoAlertas:

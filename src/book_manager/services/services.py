@@ -25,6 +25,22 @@ from book_manager.repositories.repositories import (
   IRepositorioCotizacionDolar,
   IRepositorioStock,
 )
+from book_manager.services.auditoria import ServicioAuditoria, auditar
+
+__all__ = [
+  "ServicioAuditoria",
+  "ServicioCotizacionDolar",
+  "ServicioCrud",
+  "ServicioEditorial",
+  "ServicioGenero",
+  "ServicioLibro",
+  "ServicioListaPrecios",
+  "ServicioMoneda",
+  "ServicioPrecio",
+  "ServicioStock",
+  "ServicioTipoCotizacion",
+  "auditar",
+]
 
 T = TypeVar("T", bound=EntidadBase)
 
@@ -62,6 +78,7 @@ class ServicioCrud(Generic[T]):
   def __init__(self, repositorio: IRepositorio[T]) -> None:
     self._repositorio = repositorio
 
+  @auditar("crear")
   def crear(self, entidad: T) -> T:
     """Valida y crea una entidad.
 
@@ -77,6 +94,7 @@ class ServicioCrud(Generic[T]):
     self._validar(entidad)
     return self._repositorio.crear(entidad)
 
+  @auditar("leer")
   def leer_por_id(self, identificador: Hashable) -> Optional[T]:
     """Obtiene una entidad por su clave.
 
@@ -88,6 +106,7 @@ class ServicioCrud(Generic[T]):
     """
     return self._repositorio.leer_por_id(identificador)
 
+  @auditar("listar")
   def leer_todos(self) -> list[T]:
     """Obtiene todas las entidades.
 
@@ -96,6 +115,7 @@ class ServicioCrud(Generic[T]):
     """
     return self._repositorio.leer_todos()
 
+  @auditar("actualizar")
   def actualizar(self, entidad: T) -> T:
     """Valida y actualiza una entidad existente.
 
@@ -111,6 +131,7 @@ class ServicioCrud(Generic[T]):
     self._validar(entidad)
     return self._repositorio.actualizar(entidad)
 
+  @auditar("eliminar")
   def eliminar(self, identificador: Hashable) -> bool:
     """Elimina una entidad si no está referenciada por otras.
 
@@ -313,6 +334,7 @@ class ServicioStock:
     self._repositorio = repositorio
     self._libros = libros
 
+  @auditar("crear_stock")
   def crear(self, stock: Stock) -> Stock:
     """Registra el stock inicial de un libro existente.
 
@@ -328,6 +350,7 @@ class ServicioStock:
     self._validar_libro(stock.libro_isbn)
     return self._repositorio.crear(stock)
 
+  @auditar("leer_stock")
   def leer_por_libro(self, libro_isbn: str) -> Optional[Stock]:
     """Obtiene el stock de un libro.
 
@@ -339,6 +362,7 @@ class ServicioStock:
     """
     return self._repositorio.leer_por_libro(libro_isbn)
 
+  @auditar("listar_stock")
   def leer_todos(self) -> list[Stock]:
     """Obtiene todos los registros de stock.
 
@@ -347,6 +371,7 @@ class ServicioStock:
     """
     return self._repositorio.leer_todos()
 
+  @auditar("actualizar_stock")
   def actualizar(self, stock: Stock) -> Stock:
     """Actualiza la cantidad exacta de stock de un libro.
 
@@ -362,6 +387,7 @@ class ServicioStock:
     self._validar_libro(stock.libro_isbn)
     return self._repositorio.actualizar(stock)
 
+  @auditar("eliminar_stock")
   def eliminar(self, libro_isbn: str) -> bool:
     """Elimina el registro de stock de un libro.
 
@@ -373,6 +399,7 @@ class ServicioStock:
     """
     return self._repositorio.eliminar(libro_isbn)
 
+  @auditar("ingresar_stock")
   def ingresar(self, libro_isbn: str, cantidad: int) -> Stock:
     """Suma unidades al stock de un libro, creándolo si no existe.
 
@@ -394,6 +421,7 @@ class ServicioStock:
     stock.cantidad += cantidad
     return self.actualizar(stock)
 
+  @auditar("retirar_stock")
   def retirar(self, libro_isbn: str, cantidad: int) -> Stock:
     """Descuenta unidades del stock de un libro.
 
@@ -478,6 +506,7 @@ class ServicioCotizacionDolar:
       raise ValueError("No está configurada la variable API_URL en el .env.")
     return url
 
+  @auditar("obtener_cotizaciones")
   def obtener_cotizaciones(self) -> list[CotizacionDolar]:
     """Busca, descarga y registra en la base las cotizaciones del dólar.
 
@@ -567,6 +596,7 @@ class ServicioCotizacionDolar:
     instante = datetime.fromisoformat(fecha_iso.replace("Z", "+00:00"))
     return instante.astimezone(ZONA_HORARIA).date()
 
+  @auditar("crear_cotizacion")
   def crear(self, cotizacion: CotizacionDolar) -> CotizacionDolar:
     """Registra una cotización nueva.
 
@@ -582,6 +612,7 @@ class ServicioCotizacionDolar:
     self._validar(cotizacion)
     return self._repositorio.crear(cotizacion)
 
+  @auditar("leer_cotizacion")
   def leer_por_tipo_y_fecha(
     self, tipo_id: int, fecha: date
   ) -> Optional[CotizacionDolar]:
@@ -596,6 +627,7 @@ class ServicioCotizacionDolar:
     """
     return self._repositorio.leer_por_tipo_y_fecha(tipo_id, fecha)
 
+  @auditar("historico_cotizaciones")
   def leer_historico_por_tipo(self, tipo_id: int) -> list[CotizacionDolar]:
     """Obtiene el histórico de cotizaciones de un tipo.
 
@@ -607,6 +639,7 @@ class ServicioCotizacionDolar:
     """
     return self._repositorio.leer_historico_por_tipo(tipo_id)
 
+  @auditar("listar_cotizaciones")
   def leer_todos(self) -> list[CotizacionDolar]:
     """Obtiene todas las cotizaciones registradas.
 
@@ -615,6 +648,7 @@ class ServicioCotizacionDolar:
     """
     return self._repositorio.leer_todos()
 
+  @auditar("actualizar_cotizacion")
   def actualizar(self, cotizacion: CotizacionDolar) -> CotizacionDolar:
     """Actualiza el valor de una cotización existente.
 
@@ -630,6 +664,7 @@ class ServicioCotizacionDolar:
     self._validar(cotizacion)
     return self._repositorio.actualizar(cotizacion)
 
+  @auditar("eliminar_cotizacion")
   def eliminar(self, tipo_id: int, fecha: date) -> bool:
     """Elimina la cotización de un tipo en una fecha.
 
@@ -754,6 +789,7 @@ class ServicioListaPrecios:
       return None
     return round(valor * tasas[origen] / tasas[destino], 2)
 
+  @auditar("lista_precios")
   def lista_bimonetaria(
     self, codigo_moneda: str, tipo_id: int
   ) -> list[FilaPrecio]:
@@ -789,6 +825,7 @@ class ServicioListaPrecios:
       ))
     return filas
 
+  @auditar("exportar_precios")
   def exportar_csv(self, nombre_archivo: str = "lista_precios.csv") -> Path:
     """Exporta los precios en pesos y en dólares de cada tipo de cotización.
 

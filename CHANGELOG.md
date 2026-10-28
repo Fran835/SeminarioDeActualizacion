@@ -2,6 +2,12 @@
 
 ## Sprint 3
 
+[Ejercicio 6]
+- Se agrega la entidad Auditoria, el modelo AuditoriaModel (tabla auditorias con acción, fecha y detalles) y RepositorioAuditoria.
+- services/auditoria.py: ServicioAuditoria y el decorador @auditar(accion), que registra el éxito o el error de cada operación sin interrumpirla si la auditoría falla.
+- Se auditan las operaciones CRUD de todos los servicios, stock, cotizaciones, lista de precios, exportación, scraping, comparación y reporte.
+- services.py reexporta ServicioAuditoria.
+
 [Ejercicio 5]
 - ServicioReportes genera reportes/reporte_precios_<fecha>.xlsx con openpyxl con los campos Libro, Precio interno, Precio web, Diferencia y Fecha de extracción.
 

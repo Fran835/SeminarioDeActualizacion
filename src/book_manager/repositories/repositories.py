@@ -8,7 +8,7 @@ transacción del GestorTransaccion.
 import abc
 from collections.abc import Iterator
 from contextlib import contextmanager
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 from typing import Generic, Optional, TypeVar
 
@@ -18,6 +18,7 @@ from sqlalchemy.orm import Session
 
 from book_manager.database.connection import ConexionDB
 from book_manager.entities.entities import (
+  Auditoria,
   CotizacionDolar,
   Editorial,
   Genero,
@@ -28,6 +29,7 @@ from book_manager.entities.entities import (
   TipoCotizacion,
 )
 from book_manager.models.models import (
+  AuditoriaModel,
   Base,
   CotizacionDolarModel,
   EditorialModel,
@@ -475,3 +477,83 @@ class RepositorioCotizacionDolar(
   def eliminar(self, tipo_id: int, fecha: date) -> bool:
     """Elimina la cotización de ese tipo y fecha."""
     return super().eliminar((tipo_id, fecha))
+
+
+def _a_auditoria(modelo: AuditoriaModel) -> Auditoria:
+  """Convierte un AuditoriaModel en la entidad Auditoria."""
+  return Auditoria(
+    modelo.accion,
+    modelo.fecha,
+    modelo.detalles,
+    modelo.id,
+  )
+
+
+class RepositorioAuditoria:
+  """Repositorio de la tabla de auditoría, con escritura append-only.
+
+  Args:
+    conexion: Conexión a la base; por defecto, la instancia única.
+  """
+
+  def __init__(self, conexion: ConexionDB | None = None) -> None:
+    self._conexion: ConexionDB = conexion or ConexionDB()
+
+  def registrar(
+    self,
+    accion: str,
+    detalles: str = "",
+    fecha: datetime | None = None,
+  ) -> Auditoria:
+    """Inserta un registro de auditoría y lo devuelve.
+
+    Args:
+      accion: Operación auditada.
+      detalles: Información adicional de la operación.
+      fecha: Momento del registro; por defecto, ahora.
+
+    Returns:
+      Auditoria: El registro insertado con su id asignado.
+    """
+    registro = Auditoria(accion, fecha or datetime.now(), detalles)
+    with self._conexion.transaccion() as sesion:
+      modelo = AuditoriaModel(
+        accion=registro.accion,
+        fecha=registro.fecha,
+        detalles=registro.detalles,
+      )
+      sesion.add(modelo)
+      sesion.flush()
+      sesion.refresh(modelo)
+      return _a_auditoria(modelo)
+
+  def leer_todos(self) -> list[Auditoria]:
+    """Devuelve todas las auditorías ordenadas por fecha e id."""
+    with self._conexion.transaccion() as sesion:
+      consulta = select(AuditoriaModel).order_by(
+        AuditoriaModel.fecha,
+        AuditoriaModel.id,
+      )
+      return [_a_auditoria(m) for m in sesion.scalars(consulta)]
+
+  def leer_ultimos(self, limite: int = 50) -> list[Auditoria]:
+    """Devuelve las últimas auditorías, de la más nueva a la más vieja.
+
+    Args:
+      limite: Cantidad máxima de registros a devolver.
+
+    Returns:
+      list[Auditoria]: Registros de auditoría.
+
+    Raises:
+      ValueError: Si el límite no es positivo.
+    """
+    if limite <= 0:
+      raise ValueError("El límite de auditorías debe ser mayor a cero.")
+    with self._conexion.transaccion() as sesion:
+      consulta = (
+        select(AuditoriaModel)
+        .order_by(AuditoriaModel.fecha.desc(), AuditoriaModel.id.desc())
+        .limit(limite)
+      )
+      return [_a_auditoria(m) for m in sesion.scalars(consulta)]

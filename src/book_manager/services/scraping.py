@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
+from book_manager.services.auditoria import auditar
 from book_manager.services.comparacion import (
   ResultadoAlertas,
   ServicioComparacion,
@@ -49,6 +50,7 @@ class ServicioScraping:
     self._raiz_repo = raiz_repo or Path(__file__).resolve().parents[3]
     self._timeout = timeout
 
+  @auditar("ejecutar_scraping")
   def ejecutar(
     self, titulos: Optional[str] = None, umbral: float = 10.0
   ) -> ResultadoScraping:

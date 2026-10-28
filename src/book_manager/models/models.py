@@ -1,16 +1,18 @@
 """Modelos ORM (tablas) del sistema Book Manager definidos con SQLAlchemy."""
 
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 from typing import Optional
 
 from sqlalchemy import (
   CheckConstraint,
   Date,
+  DateTime,
   ForeignKey,
   Integer,
   Numeric,
   String,
+  Text,
   UniqueConstraint,
 )
 from sqlalchemy.orm import (
@@ -210,4 +212,22 @@ class CotizacionDolarModel(Base):
     return (
       f"CotizacionDolarModel(tipo_id={self.tipo_cotizacion_id}, "
       f"fecha={self.fecha}, valor={self.valor})"
+    )
+
+
+class AuditoriaModel(Base):
+  """Tabla de auditoría: una fila por operación auditada."""
+
+  __tablename__ = "auditorias"
+
+  id: Mapped[int] = mapped_column(Integer, primary_key=True)
+  accion: Mapped[str] = mapped_column(String(100), index=True)
+  fecha: Mapped[datetime] = mapped_column(DateTime, index=True)
+  detalles: Mapped[str] = mapped_column(Text, default="")
+
+  def __repr__(self) -> str:
+    """Representación legible del registro."""
+    return (
+      f"AuditoriaModel(id={self.id}, accion={self.accion!r}, "
+      f"fecha={self.fecha!r})"
     )

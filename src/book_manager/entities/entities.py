@@ -1,5 +1,5 @@
 import abc
-from datetime import date
+from datetime import date, datetime
 from typing import Hashable, Optional
 
 
@@ -479,4 +479,74 @@ class CotizacionDolar:
     return (
       f"CotizacionDolar(tipo='{self._tipo_cotizacion.nombre}', "
       f"fecha={self._fecha.isoformat()}, valor={self._valor:,.2f})"
+    )
+
+
+class Auditoria(EntidadBase):
+  """Registro inmutable de una operación auditada.
+
+  Args:
+    accion: Nombre de la operación realizada.
+    fecha: Fecha y hora en la que ocurrió la operación.
+    detalles: Información adicional de la operación.
+    id_auditoria: Identificador asignado por la base; None al crear.
+  """
+
+  def __init__(
+    self,
+    accion: str,
+    fecha: datetime,
+    detalles: str = "",
+    id_auditoria: Optional[int] = None,
+  ) -> None:
+    self._id = id_auditoria
+    self.accion = accion
+    self.fecha = fecha
+    self.detalles = detalles
+
+  @property
+  def id(self) -> Optional[int]:
+    """Optional[int]: Identificador del registro en la base."""
+    return self._id
+
+  @property
+  def clave(self) -> Optional[int]:
+    """Optional[int]: Clave del registro en el repositorio."""
+    return self._id
+
+  @property
+  def accion(self) -> str:
+    """str: Nombre de la operación auditada."""
+    return self._accion
+
+  @accion.setter
+  def accion(self, valor: str) -> None:
+    self._accion = validar_texto(valor, "acción de la auditoría")
+
+  @property
+  def fecha(self) -> datetime:
+    """datetime: Fecha y hora de la operación."""
+    return self._fecha
+
+  @fecha.setter
+  def fecha(self, valor: datetime) -> None:
+    if not isinstance(valor, datetime):
+      raise ValueError("La fecha de la auditoría no es válida.")
+    self._fecha = valor
+
+  @property
+  def detalles(self) -> str:
+    """str: Información adicional de la operación."""
+    return self._detalles
+
+  @detalles.setter
+  def detalles(self, valor: str) -> None:
+    self._detalles = str(valor).strip() if valor else ""
+
+  def __repr__(self) -> str:
+    """Devuelve una representación legible del registro de auditoría."""
+    return (
+      f"Auditoria(id={self._id}, accion='{self._accion}', "
+      f"fecha='{self._fecha.isoformat(sep=' ', timespec='seconds')}', "
+      f"detalles='{self._detalles}')"
     )

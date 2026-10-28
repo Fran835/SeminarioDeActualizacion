@@ -8,6 +8,7 @@ from openpyxl import Workbook
 from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
 
+from book_manager.services.auditoria import auditar
 from book_manager.services.comparacion import ServicioComparacion
 
 CAMPOS = (
@@ -42,6 +43,7 @@ class ServicioReportes:
     """Path: Carpeta donde se guardan los reportes Excel."""
     return self._carpeta
 
+  @auditar("generar_reporte")
   def generar_reporte_precios(
     self, ruta_jsonl: Optional[Path] = None
   ) -> Path:
