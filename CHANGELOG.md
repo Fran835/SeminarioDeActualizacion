@@ -2,6 +2,9 @@
 
 ## Sprint 3
 
+[Ejercicio 5]
+- ServicioReportes genera reportes/reporte_precios_<fecha>.xlsx con openpyxl con los campos Libro, Precio interno, Precio web, Diferencia y Fecha de extracción.
+
 [Ejercicio 4]
 - ServicioComparacion empareja cada resultado con el libro del catálogo (ISBN o título) y compara el precio interno con el web.
 - Los precios en USD se convierten con la cotización más reciente.
